@@ -1,0 +1,113 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example
+  labels:
+    # An optional convention is to include a label of the XRD. This allows
+    # easy discovery of compatible Compositions.
+    crossplane.io/xrd: xpostgresqlinstances.database.example.org
+    # The following label marks this Composition for GCP. This label can 
+    # be used in 'compositionSelector' in an XR or Claim.
+    provider: gcp
+spec:
+
+  # Each Composition must declare that it is compatible with a particular type
+  # of Composite Resource using its 'compositeTypeRef' field. The referenced
+  # version must be marked 'referenceable' in the XRD that defines the XR.
+  compositeTypeRef:
+    apiVersion: database.example.org/v1alpha1
+    kind: XPostgreSQLInstance
+
+  # When an XR is created in response to a claim Crossplane needs to know where
+  # it should create the XR's connection secret. This is configured using the
+  # 'writeConnectionSecretsToNamespace' field.
+  writeConnectionSecretsToNamespace: crossplane-system
+
+  # Each Composition must specify at least one composed resource template. In
+  # this case the Composition tells Crossplane that it should create, update, or
+  # delete a CloudSQLInstance whenever someone creates, updates, or deletes an
+  # XPostgresSQLInstance.
+  resources:
+
+    # It's good practice to provide a unique name for each entry. Note that
+    # this identifies the resources entry within the Composition - it's not
+    # the name the CloudSQLInstance. The 'name' field will be required in a
+    # future version of this API.
+  - name: cloudsqlinstance
+
+    # The 'base' template for the CloudSQLInstance Crossplane will create.
+    # You can use the base template to specify fields that never change, or
+    # default values for fields that may optionally be patched over. Bases must
+    # be a valid Crossplane resource - a Managed Resource, Composite Resource,
+    # or a ProviderConfig.
+    base:
+      apiVersion: database.gcp.crossplane.io/v1beta1
+      kind: CloudSQLInstance
+      spec:
+        forProvider:
+          databaseVersion: POSTGRES_12
+          region: us-central1
+          settings:
+            dataDiskType: PD_SSD
+            ipConfiguration:
+              ipv4Enabled: true
+              authorizedNetworks:
+                - value: "0.0.0.0/0"
+      
+    # Each resource can optionally specify a set of 'patches' that copy fields
+    # from (or to) the XR.
+    patches:
+      # FromCompositeFieldPath is the default when 'type' is omitted, but it's
+      # good practice to always include the type for readability.
+    - type: FromCompositeFieldPath
+      fromFieldPath: spec.parameters.size
+      toFieldPath: spec.forProvider.settings.tier
+
+      # Each patch can optionally specify one or more 'transforms', which
+      # transform the 'from' field's value before applying it to the 'to' field.
+      # Transforms are applied in the order they are specified; each transform's
+      # output is passed to the following transform's input.
+      transforms:
+      - type: map
+        map:
+          medium: db-custom-1-3840
+
+      policy:
+        # By default a patch from a field path that does not exist is simply
+        # skipped until it does. Use the 'Required' policy to instead block and
+        # return an error when the field path does not exist.
+        fromFieldPath: Required
+
+        # You can patch entire objects or arrays from one resource to another.
+        # By default the 'to' object or array will be overwritten, not merged.
+        # Use the 'mergeOptions' field to override this behaviour. Note that
+        # these fields accidentally leak Go terminology - 'slice' means 'array'.
+        # 'map' means 'map' in YAML or 'object' in JSON.
+        mergeOptions:
+          appendSlice: true
+          keepMapValues: true
+    
+    # You can include connection details to propagate from this CloudSQLInstance
+    # up to the XPostgreSQLInstance XR (and then on to the PostgreSQLInstance
+    # claim). Remember that your XRD must declare which connection secret keys
+    # it supports.
+    connectionDetails:
+    - name: hostname
+      fromConnectionSecretKey: hostname
+    
+    # By default an XR's 'Ready' status condition will become True when the
+    # 'Ready' status conditions of all of its composed resources become true.
+    # You can optionally specify custom readiness checks to override this.
+    readinessChecks:
+    - type: None
+
+    
+  # If you find yourself repeating patches a lot you can group them as a named
+  # 'patch set' then use a PatchSet type patch to reference them.
+  patchSets:
+  - name: metadata
+    patches:
+    - type: FromCompositeFieldPath
+      # When both field paths are the same you can omit the 'toFieldPath' and it
+      # will default to the 'fromFieldPath'.
+      fromFieldPath: metadata.labels[some-important-label]

@@ -1,0 +1,90 @@
+apiVersion: database.example.org/v1alpha1
+kind: XPostgreSQLInstance
+metadata:
+  # This XR was created automatically by a claim, so its name is derived from
+  # the claim's name.
+  name: my-db-mfd1b
+  annotations:
+    # The external name annotation has special meaning in Crossplane. When a
+    # claim creates an XR its external name will automatically be propagated to
+    # the XR. Whether and how the external name is propagated to the resources
+    # the XR composes is up to its Composition.
+    crossplane.io/external-name: production-db-0
+spec:
+  # XRs have a reference to the claim that created them (or, if the XR was
+  # pre-provisioned, to the claim that later claimed them).
+  claimRef:
+    apiVersion: database.example.org/v1alpha1
+    kind: PostgreSQLInstance
+    name: my-db
+  # The compositeDeletePolicy specifies the propagation policy that will be used by Crossplane
+  # when deleting the Composite Resource that is associated with the Claim.  The default
+  # value is Background, which causes the Composite resource to be deleted using
+  # the kubernetes default propagation policy of Background, and all associated
+  # resources will be deleted simultaneously.  The other value for this field is Foreground,
+  # which will cause the Composite resource to be deleted using Foreground Cascading Deletion.
+  # Kubernetes will add a foregroundDeletion finalizer to all of the resources in the
+  # dependency graph, and they will be deleted starting with the edge or leaf nodes and
+  # working back towards the root Composite.  See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#cascading-deletion
+  # for more information on cascading deletion.
+  compositeDeletePolicy: Background
+  # The compositionRef specifies which Composition this XR will use to compose
+  # resources when it is created, updated, or deleted. This can be omitted and
+  # will be set automatically if the XRD has a default or enforced composition
+  # reference, or if the below composition selector is set.
+  compositionRef:
+    name: production-us-east
+  # The compositionSelector allows you to match a Composition by labels rather
+  # than naming one explicitly. It is used to set the compositionRef if none is
+  # specified explicitly.
+  compositionSelector:
+    matchLabels:
+      environment: production
+      region: us-east
+      provider: gcp
+  # The environment is an in-memory object that can be patched from / to during
+  # rendering.
+  # The environment is composed by merging the 'data' of all EnvironmentConfigs
+  # referenced below. It is disposed after every reconcile.
+  # NOTE: EnvironmentConfigs are an alpha feature and need to be enabled with
+  #       the '--enable-environment-configs' flag on startup.
+  environment:
+    # EnvironmentConfigs is a list of object references that is made up of
+    # name references and label selectors
+    environmentConfigs:
+      - type: Reference # this is the default
+        ref:
+          name: example-environment
+      - type: Selector
+        selector:
+          matchLabels:
+          - key: stage
+            type: FromCompositeFieldPath # this is the default
+            valueFromFieldPath: spec.parameters.stage
+          - key: provider
+            type: Value
+            value: "gcp"
+  # The resourceRefs array contains references to all of the resources of which
+  # this XR is composed. Despite being in spec this field isn't intended to be
+  # configured by humans - Crossplane will take care of keeping it updated.
+  resourceRefs:
+  - apiVersion: database.gcp.crossplane.io/v1beta1
+    kind: CloudSQLInstance
+    name: my-db-mfd1b-md9ab
+  # The writeConnectionSecretToRef field specifies a Kubernetes Secret that this
+  # XR should write its connection details (if any) to.
+  writeConnectionSecretToRef:
+    namespace: crossplane-system
+    name: my-db-connection-details
+status:
+  # An XR's 'Ready' condition will become True when all of the resources it
+  # composes are deemed ready. Refer to the Composition 'readinessChecks' field
+  # for more information.
+  conditions:
+  - type: Ready
+    statue: "True"
+    reason: Available
+    lastTransitionTime: 2021-10-02T07:20:50.52Z
+  # The last time the XR published its connection details to a Secret.
+  connectionDetails:
+    lastPublishedTime: 2021-10-02T07:20:51.24Z

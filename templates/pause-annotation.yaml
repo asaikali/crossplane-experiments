@@ -1,0 +1,12 @@
+apiVersion: test.com/v1alpha1
+kind: MyResource
+metadata:
+  annotations:
+     crossplane.io/paused: "true"
+  namespace: upbound-system
+  name: my-resource
+spec:
+  parameters:
+    tagValue: demo-test
+  compositionRef:
+    name: example

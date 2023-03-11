@@ -1,0 +1,45 @@
+apiVersion: database.example.org/v1alpha1
+kind: PostgreSQLInstance
+metadata:
+  # Claims are namespaced, unlike XRs.
+  namespace: default
+  name: my-db
+  annotations:
+    # The external name annotation has special meaning in Crossplane. When a
+    # claim creates an XR its external name will automatically be propagated to
+    # the XR. Whether and how the external name is propagated to the resources
+    # the XR composes is up to its Composition.
+    crossplane.io/external-name: production-db-0
+spec:
+  # The resourceRef field references the XR this claim corresponds to. You can
+  # either set it to an existing (compatible) XR that you'd like to claim or
+  # (the more common approach) leave it blank and let Crossplane automatically
+  # create and reference an XR for you.
+  resourceRef:
+    apiVersion: database.example.org/v1alpha1
+    kind: XPostgreSQLInstance
+    name: my-db-mfd1b
+  # A claim's compositionRef and compositionSelector work the same way as an XR.
+  compositionRef:
+    name: production-us-east
+  compositionSelector:
+    matchLabels:
+      environment: production
+      region: us-east
+      provider: gcp
+  # A claim's writeConnectionSecretToRef mostly works the same way as an XR's.
+  # The one difference is that the Secret is always written to the namespace of
+  # the claim.
+  writeConnectionSecretToRef:
+    name: my-db-connection-details
+status:
+  # A claim's 'Ready' condition will become True when its XR's 'Ready' condition
+  # becomes True.
+  conditions:
+  - type: Ready
+    statue: "True"
+    reason: Available
+    lastTransitionTime: 2021-10-02T07:20:50.52Z
+  # The last time the claim published its connection details to a Secret.
+  connectionDetails:
+    lastPublishedTime: 2021-10-02T07:20:51.24Z
