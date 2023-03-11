@@ -1,0 +1,22 @@
+apiVersion: s3.aws.crossplane.io/v1beta1
+kind: Bucket
+metadata:
+  name: test-bucket
+  annotations:
+    # This will be the actual bucket name. It must be globally unique, so you
+    # probably want to change it before trying to apply this example.
+    crossplane.io/external-name: adib-crossplane-example-bucket
+spec:
+  forProvider:
+    acl: private
+    locationConstraint: us-east-1
+    paymentConfiguration:
+      payer: BucketOwner
+    serverSideEncryptionConfiguration:
+      rules:
+        - applyServerSideEncryptionByDefault:
+            sseAlgorithm: AES256
+    versioningConfiguration:
+      status: Enabled
+  providerConfigRef:
+    name: aws-provider

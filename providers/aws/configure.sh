@@ -12,15 +12,22 @@ aws_secret_access_key = $(aws configure get aws_secret_access_key --profile $AWS
 aws_session_token = $(aws configure get aws_session_token --profile $AWS_PROFILE)
 "
 
+readonly BASE64_AWS_CRED=$(echo "${AWS_CREDS}" | base64)
+
 #
 # Create a kuberentes secret for the aws creds 
 #
-kubectl create secret generic aws-provider-creds \
-    -n crossplane-system \
-    --from-literal=creds='${AWS_CREDS}' \
-    --dry-run=client \
-    --output=yaml \
-    | kubectl apply -f - 
+
+cat <<EOF | kubectl apply -f -
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-provider-creds
+  namespace: crossplane-system
+data:
+  creds: ${BASE64_AWS_CRED}
+EOF
 
 #
 # Create the provider configuration for AWS
