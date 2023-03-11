@@ -1,9 +1,10 @@
+---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: upbound-provider-aws
+ name: provider-aws
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws:v0.31.0
+ package: xpkg.upbound.io/crossplane-contrib/provider-aws:v0.38.0
 
 # You can deploy the provider by using kubectl apply -f aws-provider.yaml
 # Use kubectl get providers to determine the status of the provider
