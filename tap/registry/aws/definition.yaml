@@ -10,7 +10,7 @@ spec:
   claimNames:
     kind: Registry
     plural: registries
-  k :
+  defaultCompositionRef:
     name: tap-ecr-registry
   versions:
   - name: v1alpha1
