@@ -1,0 +1,37 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-ecr-registry
+  labels:
+    crossplane.io/xrd: registries.aws.tap.example.com
+    provider: aws-provider
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XRegistry
+
+  resources:
+  - name: cluster-essentials
+    base:
+      apiVersion: ecr.aws.crossplane.io/v1beta1
+      kind: Repository
+      spec:
+        forProvider:
+          region: eu-west-1
+          imageScanningConfiguration:
+            scanOnPush: false
+          imageTagMutability: IMMUTABLE
+        providerConfigRef:
+          name: aws-provider
+    patches:
+     - type: FromCompositeFieldPath
+       fromFieldPath: spec.region
+       toFieldPath: spec.forProvider.region
+     - type: FromCompositeFieldPath
+       fromFieldPath: spec.codeName
+       toFieldPath: metadata.name
+       transforms:
+         - type: string
+           string:
+            fmt: "%s-cluster-essentials"
+    
