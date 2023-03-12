@@ -30,4 +30,12 @@ spec:
             required:
             - codeName
             - region
-         
+          status:
+            type: object
+            properties:
+              repositoryName:
+                description: the name of the created repo 
+                type: string
+              repositoryUri:
+                description: The url of the registry repo 
+                type: string

@@ -34,4 +34,10 @@ spec:
          - type: string
            string:
             fmt: "%s-cluster-essentials"
+     - type: ToCompositeFieldPath
+       fromFieldPath: status.atProvider.repositoryUri
+       toFieldPath: status.repositoryUri
+     - type: ToCompositeFieldPath
+       fromFieldPath: status.atProvider.repositoryName
+       toFieldPath: status.repositoryName
     
