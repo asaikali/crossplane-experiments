@@ -1,9 +1,46 @@
+
+#! 
+#! define the repo for object for tap 
+#!
+
+#@ def repo(name):
+name: #@ name
+base:
+  apiVersion: ecr.aws.crossplane.io/v1beta1
+  kind: Repository
+  spec:
+    forProvider:
+      region: eu-west-1
+      imageScanningConfiguration:
+        scanOnPush: false
+      imageTagMutability: IMMUTABLE
+    providerConfigRef:
+      name: aws-provider
+patches:
+  - type: FromCompositeFieldPath
+    fromFieldPath: spec.region
+    toFieldPath: spec.forProvider.region
+  - type: FromCompositeFieldPath
+    fromFieldPath: spec.codeName
+    toFieldPath: metadata.name
+    transforms:
+      - type: string
+        string:
+          fmt: #@ "%s-" + name 
+  - type: ToCompositeFieldPath
+    fromFieldPath: status.atProvider.repositoryUri
+    toFieldPath: status.repositoryUri
+  - type: ToCompositeFieldPath
+    fromFieldPath: status.atProvider.repositoryName
+    toFieldPath: status.repositoryName
+#@ end
+
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: tap-ecr-registry
   labels:
-    crossplane.io/xrd: registries.aws.tap.example.com
+    crossplane.io/xrd: xregistries.aws.tap.example.com
     provider: aws-provider
 spec:
   compositeTypeRef:
@@ -11,33 +48,6 @@ spec:
     kind: XRegistry
 
   resources:
-  - name: cluster-essentials
-    base:
-      apiVersion: ecr.aws.crossplane.io/v1beta1
-      kind: Repository
-      spec:
-        forProvider:
-          region: eu-west-1
-          imageScanningConfiguration:
-            scanOnPush: false
-          imageTagMutability: IMMUTABLE
-        providerConfigRef:
-          name: aws-provider
-    patches:
-     - type: FromCompositeFieldPath
-       fromFieldPath: spec.region
-       toFieldPath: spec.forProvider.region
-     - type: FromCompositeFieldPath
-       fromFieldPath: spec.codeName
-       toFieldPath: metadata.name
-       transforms:
-         - type: string
-           string:
-            fmt: "%s-cluster-essentials"
-     - type: ToCompositeFieldPath
-       fromFieldPath: status.atProvider.repositoryUri
-       toFieldPath: status.repositoryUri
-     - type: ToCompositeFieldPath
-       fromFieldPath: status.atProvider.repositoryName
-       toFieldPath: status.repositoryName
-    
+    - #@ repo("cluster-essentials")
+    - #@ repo("tap-packages")
+    - #@ repo("build-service")
