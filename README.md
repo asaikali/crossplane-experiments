@@ -1,4 +1,4 @@
-# corssplane-experiments
+# crossplane-experiments
 
 ## Install crossplane 
 
