@@ -23,7 +23,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
-  name: aws-community-provider-creds
+  name: aws-upjet-provider-creds
   namespace: crossplane-system
 data:
   creds: ${BASE64_AWS_CRED}
@@ -34,15 +34,15 @@ EOF
 #
 cat <<EOF | kubectl apply -f -
 ---
-apiVersion: aws.crossplane.io/v1beta1
+apiVersion: aws.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:
-  name: aws-community-provider
+  name: aws-upjet-provider
 spec:
   credentials:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: aws-community-provider-creds
+      name: aws-upjet-provider-creds
       key: creds
 EOF

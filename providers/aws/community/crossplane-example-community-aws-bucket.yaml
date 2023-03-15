@@ -1,11 +1,11 @@
 apiVersion: s3.aws.crossplane.io/v1beta1
 kind: Bucket
 metadata:
-  name: test-bucket
+  name: crossplane-example-community-aws-bucket
   annotations:
     # This will be the actual bucket name. It must be globally unique, so you
     # probably want to change it before trying to apply this example.
-    crossplane.io/external-name: adib-crossplane-example-bucket
+    crossplane.io/external-name: crossplane-example-community-aws-bucket
 spec:
   forProvider:
     acl: private
@@ -19,4 +19,4 @@ spec:
     versioningConfiguration:
       status: Enabled
   providerConfigRef:
-    name: aws-provider
+    name: aws-community-provider
