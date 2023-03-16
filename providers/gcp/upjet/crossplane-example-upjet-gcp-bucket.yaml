@@ -1,0 +1,15 @@
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: crossplane-example-upjet-gcp-bucket
+  annotations:
+    crossplane.io/external-name: crossplane-example-upjet-gcp-bucket
+  labels:
+    docs.crossplane.io/example: provider-upjet-gcp
+spec:
+  forProvider:
+    location: US
+    storageClass: MULTI_REGIONAL
+  deletionPolicy: Delete
+  providerConfigRef:
+    name: gcp-upjet-provider
