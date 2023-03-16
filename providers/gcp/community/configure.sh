@@ -32,7 +32,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gcp-provider-creds
+  name: gcp-community-provider-creds
   namespace: crossplane-system
 data:
   creds: ${BASE64_GCP_CRED}
@@ -46,13 +46,13 @@ cat <<EOF | kubectl apply -f -
 apiVersion: gcp.crossplane.io/v1beta1
 kind: ProviderConfig
 metadata:
-  name: gcp-provider
+  name: gcp-community-provider
 spec:
   projectID: ${PROJECT_ID}
   credentials:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: gcp-provider-creds
+      name: gcp-community-provider-creds
       key: creds
 EOF

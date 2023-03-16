@@ -1,0 +1,14 @@
+apiVersion: storage.gcp.crossplane.io/v1alpha3
+kind: Bucket
+metadata:
+  name: crossplane-example-community-gcp-bucket
+  annotations:
+    crossplane.io/external-name: crossplane-example-community-gcp-bucket
+  labels:
+    docs.crossplane.io/example: provider-community-gcp
+spec:
+  deletionPolicy: Delete
+  location: US
+  providerConfigRef:
+    name: gcp-community-provider
+  storageClass: MULTI_REGIONAL
