@@ -7,7 +7,7 @@
 readonly AZURE_SUBSCRIPTION_ID=$(az account show --query id --output tsv)
 
 # Create service principal with Owner role
-readonly AZURE_CREDS=$(az ad sp create-for-rbac --name azure-crossplane-provider --sdk-auth --role Owner --scopes /subscriptions/${AZURE_SUBSCRIPTION_ID})
+readonly AZURE_CREDS=$(az ad sp create-for-rbac --name azure-community-crossplane-provider --sdk-auth --role Owner --scopes /subscriptions/${AZURE_SUBSCRIPTION_ID})
 readonly BASE64_AZURE_CRED=$(echo "${AZURE_CREDS}" | base64)
 
 #
@@ -19,7 +19,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
-  name: azure-provider-creds
+  name: azure-community-provider-creds
   namespace: crossplane-system
 data:
   creds: ${BASE64_AZURE_CRED}
@@ -33,13 +33,13 @@ cat <<EOF | kubectl apply -f -
 apiVersion: azure.crossplane.io/v1beta1
 kind: ProviderConfig
 metadata:
-  name: azure-provider
+  name: azure-community-provider
 spec:
   credentials:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: azure-provider-creds
+      name: azure-community-provider-creds
       key: creds
 EOF
 

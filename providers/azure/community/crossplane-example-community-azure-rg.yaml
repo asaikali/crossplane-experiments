@@ -1,8 +1,8 @@
 apiVersion: azure.crossplane.io/v1alpha3
 kind: ResourceGroup
 metadata:
-  name: test-rg
+  name: crossplane-example-community-azure-rg
 spec:
   location: "North Europe"
   providerConfigRef:
-    name: azure-provider
+    name: azure-community-provider
