@@ -1,0 +1,17 @@
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-azure-upjet
+spec:
+  package: xpkg.upbound.io/upbound/provider-azure:v0.29.0
+
+#
+# You can deploy the provider by using kubectl apply -f azure-provider.yaml
+# Use kubectl get providers to determine the status of the provider
+# At first the provider will show status of installed is true and it will 
+# take a few minutes for health status to go from Unknown to true
+#
+# More details:
+# https://marketplace.upbound.io/providers/upbound/provider-azure
+# 

@@ -1,0 +1,11 @@
+apiVersion: azure.upbound.io/v1beta1
+kind: ResourceGroup
+metadata:
+  annotations:
+  name: crossplane-example-upjet-azure-rg
+spec:
+  forProvider:
+    location: "North Europe"
+  providerConfigRef:
+    name: azure-upjet-provider
+
