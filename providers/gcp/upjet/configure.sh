@@ -7,7 +7,7 @@
 # configure PROJECT_ID with `gcloud config set project xxxx`
 readonly PROJECT_ID=$(gcloud config get project)
 readonly CODE_NAME="crossplane-gcp-provider"
-readonly GCP_CREDS_FILE=../../workspace/gcp-credentials.json
+readonly GCP_CREDS_FILE=../../../workspace/gcp-credentials.json
 readonly GCP_SERVICE_ACCOUNT_NAME="${CODE_NAME}"
 readonly GCP_SERVICE_ACCOUNT_EMAIL="${CODE_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
