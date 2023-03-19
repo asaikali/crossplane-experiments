@@ -76,7 +76,27 @@ spec:
     name: aws-upjet-provider
 #@ end
 
-#@ def route(region,destinationCidr,):
+#@ def defaultRouteTable(vpc,region):
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: DefaultRouteTable
+metadata:
+  name: #@ "main-" + vpc + "-route-table"
+spec:
+  forProvider:
+    defaultRouteTableIdRef:
+      name: #@ vpc
+    region: #@ region
+    route:
+      - cidrBlock: 0.0.0.0/0
+        gatewayIdRef:
+          name: #@ internetGatewayName(vpc)
+    tags:
+      Name: #@ "main-" + vpc + "-route-table"
+  providerConfigRef:
+    name: aws-upjet-provider
+#@ end
+
+#@ def route(region,destinationCidr):
 apiVersion: ec2.aws.upbound.io/v1beta1
 kind: Route
 metadata:
@@ -117,21 +137,4 @@ spec:
 
 --- #@ internetGateway(vpc="tap",region="us-east-1")
 
----
-apiVersion: ec2.aws.upbound.io/v1beta1
-kind: DefaultRouteTable
-metadata:
-  name: example
-spec:
-  forProvider:
-    defaultRouteTableIdRef:
-      name: tap
-    region: us-east-1
-    route:
-      - cidrBlock: 0.0.0.0/0
-        gatewayIdRef:
-          name: #@ internetGatewayName("tap")
-    tags:
-      Name: tap-route-table
-  providerConfigRef:
-    name: aws-upjet-provider
+--- #@ defaultRouteTable(vpc="tap", region="us-east-1")
