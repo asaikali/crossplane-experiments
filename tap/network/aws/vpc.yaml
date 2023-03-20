@@ -113,6 +113,49 @@ spec:
     name: aws-upjet-provider
 #@ end
 
+
+#@ def elasticIp(region,name):
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: EIP
+metadata:
+  name: #@ name
+spec:
+  forProvider:
+    region: #@ region
+    vpc: true
+    tags: 
+      Name: #@ name
+  providerConfigRef:
+    name: aws-upjet-provider
+#@ end
+
+#@ def natGatewayName(vpc,region,az):
+#@   return vpc + "-nat-gateway-" + region + az 
+#@ end
+
+#@ def natGatewayElasticIpName(vpc,region,az):
+#@   return vpc + "-eip-nat-gateway-" + region + az 
+#@ end
+
+#@ def natGateway(vpc,region,az):
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: NATGateway
+metadata:
+  name: #@ natGatewayName(vpc=vpc,region=region,az=az) 
+spec:
+  forProvider:
+    connectivityType: public
+    region: #@ region
+    subnetIdRef:
+      name:  #@ subnetName(type="public",vpc=vpc,region=region,az=az)
+    allocationIdRef:
+      name: #@ natGatewayElasticIpName(vpc=vpc,region=region,az=az)
+    tags:
+      Name:  #@ natGatewayName(vpc=vpc,region=region,az=az)
+  providerConfigRef:
+    name: aws-upjet-provider
+#@ end
+
 #! Subnet address | Range of addresses	      | Useable IPs	              | Hosts	
 #! 10.0.0.0/19	  | 10.0.0.0 - 10.0.31.255	  | 10.0.0.1 - 10.0.31.254	  | 8190	
 #! 10.0.32.0/19	  | 10.0.32.0 - 10.0.63.255	  | 10.0.32.1 - 10.0.63.254	  | 8190	
@@ -138,3 +181,8 @@ spec:
 --- #@ internetGateway(vpc="tap",region="us-east-1")
 
 --- #@ defaultRouteTable(vpc="tap", region="us-east-1")
+
+--- #@ elasticIp( name= natGatewayElasticIpName(vpc="tap",region="us-east-1",az="a"),region="us-east-1")
+--- #@ elasticIp( name= natGatewayElasticIpName(vpc="tap",region="us-east-1",az="b"),region="us-east-1")
+--- #@ natGateway(vpc="tap",region="us-east-1", az="a")
+--- #@ natGateway(vpc="tap",region="us-east-1", az="b")
