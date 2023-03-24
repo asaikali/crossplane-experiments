@@ -1,3 +1,5 @@
+#@ load("@ytt:template", "template")
+
 #!
 #! This file shows how to define an aws VPC 
 #! 
@@ -38,7 +40,9 @@ spec:
     name: aws-upjet-provider
 #@ end
 
+---
 #@ def vpc(name, region): 
+---
 apiVersion: ec2.aws.upbound.io/v1beta1
 kind: VPC
 metadata:
@@ -54,7 +58,32 @@ spec:
       Name: #@ name
   providerConfigRef:
     name: aws-upjet-provider
+--- #@ subnet(vpc="tap", region="us-east-1", az="a", cidr="10.0.0.0/19", type="public",)
+--- #@ subnet(vpc="tap", region="us-east-1", az="a", cidr="10.0.32.0/19", type="private")
+
+--- #@ subnet(vpc="tap", region="us-east-1", az="b", cidr="10.0.64.0/19", type="public",)
+--- #@ subnet(vpc="tap", region="us-east-1", az="b", cidr="10.0.96.0/19", type="private")
+
+--- #@ subnet(vpc="tap", region="us-east-1", az="c", cidr="10.0.128.0/19", type="public",)
+--- #@ subnet(vpc="tap", region="us-east-1", az="c", cidr="10.0.160.0/19", type="private")
+
+--- #@ internetGateway(vpc="tap",region="us-east-1")
+
+--- #@ elasticIp( name= natGatewayElasticIpName(vpc="tap",region="us-east-1",az="a"),region="us-east-1")
+--- #@ elasticIp( name= natGatewayElasticIpName(vpc="tap",region="us-east-1",az="b"),region="us-east-1")
+--- #@ natGateway(vpc="tap",region="us-east-1", az="a")
+--- #@ natGateway(vpc="tap",region="us-east-1", az="b")
+
+--- #@ defaultRouteTable(vpc="tap", region="us-east-1")
+
+--- #@ routeTable(vpc="tap",region="us-east-1", type="public")
+--- #@ routeToInternetGateway(vpc="tap",region="us-east-1")
+
+--- #@ routeTable(vpc="tap",region="us-east-1", type="private")
+--- #@ routeToNatGateway(vpc="tap",region="us-east-1",az="a")
+--- #@ routeToNatGateway(vpc="tap",region="us-east-1",az="b")
 #@ end
+---
 
 #@ def internetGatewayName(vpc):
 #@ return vpc + "-internet-gateway"
@@ -80,7 +109,7 @@ spec:
 apiVersion: ec2.aws.upbound.io/v1beta1
 kind: DefaultRouteTable
 metadata:
-  name: #@ "main-" + vpc + "-route-table"
+  name: #@ vpc + "-route-table-main"
 spec:
   forProvider:
     defaultRouteTableIdRef:
@@ -91,16 +120,36 @@ spec:
         gatewayIdRef:
           name: #@ internetGatewayName(vpc)
     tags:
-      Name: #@ "main-" + vpc + "-route-table"
+      Name: #@ vpc + "-route-table-main"
   providerConfigRef:
     name: aws-upjet-provider
 #@ end
 
-#@ def route(region,destinationCidr):
+#@ def routeTableName(vpc,region,type):
+#@  return vpc + "-route-table-" + type
+#@ end
+
+#@ def routeTable(vpc,region,type):
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: RouteTable
+metadata:
+  name: #@ routeTableName(vpc=vpc,region=region,type=type)
+spec:
+  forProvider:
+    region: #@ region
+    tags:
+      Name: #@ routeTableName(vpc=vpc,region=region,type=type)
+    vpcIdRef:
+      name: #@ vpc 
+  providerConfigRef:
+    name: aws-upjet-provider
+#@ end
+
+#@ def routeToInternetGateway(vpc,region):
 apiVersion: ec2.aws.upbound.io/v1beta1
 kind: Route
 metadata:
-  name: default-route
+  name: public-subnets-default-route
 spec:
   forProvider:
     destinationCidrBlock: 0.0.0.0/0
@@ -108,11 +157,27 @@ spec:
       name: #@ internetGatewayName(vpc)
     region: #@ region
     routeTableIdRef:
-      name: table
+      name: #@ routeTableName(vpc=vpc,region=region,type="public")
   providerConfigRef:
     name: aws-upjet-provider
 #@ end
 
+#@ def routeToNatGateway(vpc,region,az):
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Route
+metadata:
+  name: private-subnets-default-route
+spec:
+  forProvider:
+    destinationCidrBlock: 0.0.0.0/0
+    natGatewayIdRef:
+      name: #@ natGatewayName(vpc=vpc,region=region,az=az) 
+    region: #@ region
+    routeTableIdRef:
+      name: #@ routeTableName(vpc=vpc,region=region,type="private")
+  providerConfigRef:
+    name: aws-upjet-provider
+#@ end
 
 #@ def elasticIp(region,name):
 apiVersion: ec2.aws.upbound.io/v1beta1
@@ -167,22 +232,6 @@ spec:
 #! 10.0.224.0/19	| 10.0.224.0 - 10.0.255.255	| 10.0.224.1 - 10.0.255.254	| 8190	
 #! 
 
---- #@ vpc(name="tap", region="us-east-1")
+--- #@ template.replace(vpc(name="tap", region="us-east-1"))
 
---- #@ subnet(vpc="tap", region="us-east-1", az="a", cidr="10.0.0.0/19", type="public",)
---- #@ subnet(vpc="tap", region="us-east-1", az="a", cidr="10.0.32.0/19", type="private")
 
---- #@ subnet(vpc="tap", region="us-east-1", az="b", cidr="10.0.64.0/19", type="public",)
---- #@ subnet(vpc="tap", region="us-east-1", az="b", cidr="10.0.96.0/19", type="private")
-
---- #@ subnet(vpc="tap", region="us-east-1", az="c", cidr="10.0.128.0/19", type="public",)
---- #@ subnet(vpc="tap", region="us-east-1", az="c", cidr="10.0.160.0/19", type="private")
-
---- #@ internetGateway(vpc="tap",region="us-east-1")
-
---- #@ defaultRouteTable(vpc="tap", region="us-east-1")
-
---- #@ elasticIp( name= natGatewayElasticIpName(vpc="tap",region="us-east-1",az="a"),region="us-east-1")
---- #@ elasticIp( name= natGatewayElasticIpName(vpc="tap",region="us-east-1",az="b"),region="us-east-1")
---- #@ natGateway(vpc="tap",region="us-east-1", az="a")
---- #@ natGateway(vpc="tap",region="us-east-1", az="b")
