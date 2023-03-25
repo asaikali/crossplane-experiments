@@ -10,6 +10,8 @@ spec:
   claimNames:
     kind: Deployment
     plural: deployments
+  defaultCompositionRef:
+    name: tap-deployment
   versions:
   - name: v1alpha1
     served: true

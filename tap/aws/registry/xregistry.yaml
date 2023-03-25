@@ -2,7 +2,6 @@ apiVersion: aws.tap.example.com/v1alpha1
 kind: XRegistry
 metadata:
   name: green-tap-registry
-  namespace: green-tap
 spec:
   codeName: green-tap
   region: us-east-1

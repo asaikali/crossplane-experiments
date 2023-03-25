@@ -41,7 +41,6 @@ metadata:
   name: tap-ecr-registry
   labels:
     crossplane.io/xrd: xregistries.aws.tap.example.com
-    provider: aws-provider
 spec:
   compositeTypeRef:
     apiVersion: aws.tap.example.com/v1alpha1

@@ -1,0 +1,43 @@
+
+#! 
+#! define the repo for object for tap 
+#!
+
+#@ def registry(name):
+name: #@ name
+base:
+  apiVersion: aws.tap.example.com/v1alpha1
+  kind: XRegistry
+  metadata:
+    name: blue-tap-registry
+  spec:
+    codeName: blue-tap
+    region: us-east-1
+patches:
+  - type: FromCompositeFieldPath
+    fromFieldPath: spec.registry.region
+    toFieldPath: spec.region
+  - type: FromCompositeFieldPath
+    fromFieldPath: spec.codeName
+    toFieldPath: spec.codeName
+  - type: FromCompositeFieldPath
+    fromFieldPath: spec.codeName
+    toFieldPath: metadata.name
+    transforms:
+      - type: string
+        string:
+          fmt: "%s-registry"  
+#@ end
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-deployment
+  labels:
+    crossplane.io/xrd: xdeployments.aws.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XDeployment
+  resources:
+    - #@ registry("tap-registry")
