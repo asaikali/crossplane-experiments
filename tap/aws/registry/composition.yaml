@@ -6,16 +6,16 @@
 #@ def repo(name):
 name: #@ name
 base:
-  apiVersion: ecr.aws.crossplane.io/v1beta1
+  apiVersion: ecr.aws.upbound.io/v1beta1
   kind: Repository
   spec:
     forProvider:
       region: eu-west-1
       imageScanningConfiguration:
-        scanOnPush: false
+        - scanOnPush: false
       imageTagMutability: IMMUTABLE
     providerConfigRef:
-      name: aws-provider
+      name: aws-upjet-provider
 patches:
   - type: FromCompositeFieldPath
     fromFieldPath: spec.region

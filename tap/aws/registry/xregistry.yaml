@@ -6,5 +6,3 @@ metadata:
 spec:
   codeName: green-tap
   region: us-east-1
-  compositionRef:
-    name: tap-ecr-registry
