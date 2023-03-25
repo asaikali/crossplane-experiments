@@ -22,6 +22,9 @@ patches:
     toFieldPath: spec.forProvider.region
   - type: FromCompositeFieldPath
     fromFieldPath: spec.codeName
+    toFieldPath: spec.forProvider.tags.tap
+  - type: FromCompositeFieldPath
+    fromFieldPath: spec.codeName
     toFieldPath: metadata.name
     transforms:
       - type: string
