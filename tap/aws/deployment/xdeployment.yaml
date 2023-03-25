@@ -1,0 +1,49 @@
+apiVersion: aws.tap.example.com/v1alpha1
+kind: XDeployment
+metadata: 
+  name: green-tap
+spec: 
+  codeName: green-tap
+  installNamespace: green-tap-install
+  tanzuNetSecret: tanzunet
+  version:
+    tap: "1.5.0"
+    cluster-essentials: aeu
+  registry:
+    region: east-us2
+  # deployment: 
+  #   regions: 
+  #     - east-us2
+  #     - west-us2
+  #     - central-us1
+  #   clusters: 
+  #     - name: view
+  #       profile: view
+  #       region: east-us2
+  #       eksConfig:
+  #         nodeCount: 4
+  #         machineType: m5.large
+  #         kubernetesVersion: "1.23"
+  #     - name: build
+  #       profile: build
+  #       region: east-us2
+  #       eksConfig:
+  #         nodesCount: 3
+  #         machineType: m5.large
+  #         k8sVersion: "1.25"
+  #     - name: iterate
+  #       profile: iterate
+  #       region: east-us2
+  #       eksConfig:
+  #         nodesCount: 3
+  #         machineType: m5.large
+  #         k8sVersion: "1.25"
+  #     - name: run-primary
+  #       profile: run
+  #       region: east-us2
+  #       eksConfig:
+  #         nodesCount: 3
+  #         machineType: m5.large
+  #         k8sVersion: "1.25"
+
+
