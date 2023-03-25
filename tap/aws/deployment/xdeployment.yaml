@@ -7,16 +7,16 @@ spec:
   installNamespace: green-tap-install
   tanzuNetSecret: tanzunet
   version:
-    tap: "1.5.0"
-    cluster-essentials: aeu
+    tap: "1.5.0-rc.9"
+    cluster-essentials: "2354688e46d4bb4060f74fca069513c9b42ffa17a0a6d5b0dbb81ed52242ea44"
   registry:
-    region: east-us2
-  # deployment: 
+    region: us-east-2
+  # clusters: 
   #   regions: 
   #     - east-us2
   #     - west-us2
   #     - central-us1
-  #   clusters: 
+  #   instances: 
   #     - name: view
   #       profile: view
   #       region: east-us2
