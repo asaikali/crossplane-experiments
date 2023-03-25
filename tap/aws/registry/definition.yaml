@@ -7,9 +7,9 @@ spec:
   names:
     kind: XRegistry
     plural: xregistries
-  claimNames:
-    kind: Registry
-    plural: registries
+  # claimNames:
+  #   kind: Registry
+  #   plural: registries
   defaultCompositionRef:
     name: tap-ecr-registry
   versions:
