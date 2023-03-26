@@ -1,0 +1,8 @@
+apiVersion: aws.tap.example.com/v1alpha1
+kind: XNetwork
+metadata: 
+  name: green-tap-network
+spec: 
+  codeName: green-tap
+  region: us-east-2
+  

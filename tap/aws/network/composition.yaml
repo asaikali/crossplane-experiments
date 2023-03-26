@@ -1,0 +1,149 @@
+
+#! 
+#! define the repo for object for tap 
+#!
+
+#@ def vpcNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string:
+      fmt: "%s-vpc"  
+#@ end
+
+#@ def codeNameTagPatch():
+type: FromCompositeFieldPath
+toFieldPath: spec.forProvider.tags.tap
+fromFieldPath: spec.codeName
+#@ end
+
+#@ def azNamePatch(toFieldPath,az):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+transforms:
+  - type: string
+    string:
+      fmt: #@ "%s" + az  
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def vpc(): 
+name: tap
+base: 
+  apiVersion: ec2.aws.upbound.io/v1beta1
+  kind: VPC
+  spec:
+    forProvider:
+      cidrBlock: 10.0.0.0/16
+      region: us-east-2
+      enableDnsSupport: true
+      enableDnsHostnames: true
+      instanceTenancy: default
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+- #@ regionPatch(toFieldPath="spec.forProvider.region")
+- #@ vpcNamePatch(toFieldPath="spec.forProvider.tags.Name")
+- #@ vpcNamePatch(toFieldPath="metadata.name")
+- #@ codeNameTagPatch()
+#@ end
+
+#@ def subnetNamePatch(toFieldPath,type,az):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.region
+  strategy: string
+  string:
+    fmt: #@  "vpc-%s-" + type + "-subnet-%s" + az 
+#@ end
+
+#@ def subnet(type,az,cidr):
+name: #@ "vpc-" + type + "-subnet-" + az
+base: 
+  apiVersion: ec2.aws.upbound.io/v1beta1
+  kind: Subnet
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      vpcIdRef:
+        name: "" 
+      tags: 
+        Name: ""
+      region: ""
+      availabilityZone: ""
+      cidrBlock: #@ cidr
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+- #@ codeNameTagPatch()
+- #@ regionPatch(toFieldPath="spec.forProvider.region")
+- #@ vpcNamePatch(toFieldPath="spec.forProvider.vpcIdRef.name")
+- #@ azNamePatch(az=az,toFieldPath="spec.forProvider.availabilityZone")
+- #@ subnetNamePatch(type=type,az=az,toFieldPath="spec.forProvider.tags.Name")
+- #@ subnetNamePatch(type=type,az=az,toFieldPath="metadata.name")
+#@ end
+
+#@ def internetGatewayNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string:
+      fmt: "%s-vpc-internet-gateway"  
+#@ end
+
+#@ def internetGateway(): 
+name: internet-gateway
+base:
+  apiVersion: ec2.aws.upbound.io/v1beta1
+  kind: InternetGateway
+  metadata:
+    name: "" 
+  spec:
+    forProvider:
+      region: ""
+      tags:
+        Name:  ""
+      vpcIdRef:
+        name: ""
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+- #@ codeNameTagPatch()
+- #@ regionPatch(toFieldPath="spec.forProvider.region")
+- #@ internetGatewayNamePatch(toFieldPath="spec.metadata.name")
+- #@ internetGatewayNamePatch(toFieldPath="spec.forProvider.tags.Name")
+- #@ vpcNamePatch(toFieldPath="spec.forProvider.vpcIdRef.name")
+#@ end
+
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-vpc
+  labels:
+    crossplane.io/xrd: xnetworks.aws.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XNetwork
+  resources:
+    - #@ vpc()
+    - #@ subnet(az="a", cidr="10.0.0.0/19", type="public")
+    - #@ subnet(az="b", cidr="10.0.64.0/19", type="public")
+    - #@ subnet(az="c", cidr="10.0.128.0/19", type="public")
+    - #@ internetGateway()
+    
