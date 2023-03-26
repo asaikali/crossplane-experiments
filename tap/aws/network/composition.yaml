@@ -124,9 +124,47 @@ base:
 patches:
 - #@ codeNameTagPatch()
 - #@ regionPatch(toFieldPath="spec.forProvider.region")
-- #@ internetGatewayNamePatch(toFieldPath="spec.metadata.name")
-- #@ internetGatewayNamePatch(toFieldPath="spec.forProvider.tags.Name")
 - #@ vpcNamePatch(toFieldPath="spec.forProvider.vpcIdRef.name")
+- #@ internetGatewayNamePatch(toFieldPath="metadata.name")
+- #@ internetGatewayNamePatch(toFieldPath="spec.forProvider.tags.Name")
+#@ end
+
+#@ def defaultRouteTableNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string:
+      fmt: "%s-vpc-route-table-main"  
+#@ end
+
+#@ def defaultRouteTable():
+name: default-route-table
+base: 
+  apiVersion: ec2.aws.upbound.io/v1beta1
+  kind: DefaultRouteTable
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      defaultRouteTableIdRef:
+        name: ""
+      region: ""
+      route:
+        - cidrBlock: 0.0.0.0/0
+          gatewayIdRef:
+            name: ""
+      tags:
+        Name: ""
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+- #@ codeNameTagPatch()
+- #@ regionPatch(toFieldPath="spec.forProvider.region")
+- #@ internetGatewayNamePatch(toFieldPath="spec.forProvider.route[0].gatewayIdRef.name")
+- #@ defaultRouteTableNamePatch(toFieldPath="spec.forProvider.tags.Name")
+- #@ vpcNamePatch(toFieldPath="spec.forProvider.defaultRouteTableIdRef.name")
 #@ end
 
 
@@ -146,4 +184,5 @@ spec:
     - #@ subnet(az="b", cidr="10.0.64.0/19", type="public")
     - #@ subnet(az="c", cidr="10.0.128.0/19", type="public")
     - #@ internetGateway()
+    - #@ defaultRouteTable()
     
