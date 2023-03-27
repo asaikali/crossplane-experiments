@@ -1,0 +1,141 @@
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  name: example
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "eks.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-upjet-provider
+
+---
+
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicyAttachment
+metadata:
+  name: eks-for-role-example
+spec:
+  forProvider:
+    policyArn: "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+    role: example
+  providerConfigRef:
+    name: aws-upjet-provider
+
+---
+
+apiVersion: eks.aws.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  name: sample-eks-cluster
+spec:
+  forProvider:
+    region: us-east-2
+    roleArnRef:
+      name: example
+    version: "1.25"
+    vpcConfig:
+      - subnetIdRefs:
+          - name: vpc-green-tap-public-subnet-us-east-2a
+          - name: vpc-green-tap-public-subnet-us-east-2b
+          - name: vpc-green-tap-public-subnet-us-east-2c
+  providerConfigRef:
+    name: aws-upjet-provider
+
+---
+
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  name: example-eks-node-role
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ec2.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-upjet-provider
+
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicyAttachment
+metadata:
+  name: eks-worknode-node-role-example
+spec:
+  forProvider:
+    policyArn: "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    role: example-eks-node-role
+  providerConfigRef:
+    name: aws-upjet-provider
+
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicyAttachment
+metadata:
+  name: eks-worknode-node-role-example-ecr
+spec:
+  forProvider:
+    policyArn: "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    role: example-eks-node-role
+  providerConfigRef:
+    name: aws-upjet-provider
+
+
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicyAttachment
+metadata:
+  name: eks-worknode-node-role-example-cni
+spec:
+  forProvider:
+    policyArn: "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    role: example-eks-node-role
+  providerConfigRef:
+    name: aws-upjet-provider
+
+---
+
+apiVersion: eks.aws.upbound.io/v1beta1
+kind: NodeGroup
+metadata:
+  name: node-group-1
+spec:
+  forProvider:
+    clusterNameRef:
+      name: sample-eks-cluster
+    nodeRoleArnRef:
+      name: example-eks-node-role
+    region: us-east-2
+    instanceTypes:
+      - m5a.xlarge
+    subnetIdRefs:
+      - name: vpc-green-tap-public-subnet-us-east-2a
+      - name: vpc-green-tap-public-subnet-us-east-2b
+      - name: vpc-green-tap-public-subnet-us-east-2c
+    scalingConfig:
+      - desiredSize: 3
+        maxSize: 3
+        minSize: 3
+  providerConfigRef:
+    name: aws-upjet-provider

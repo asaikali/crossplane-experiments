@@ -1,0 +1,67 @@
+
+#! 
+#! define a EKS clusters for tap
+#!
+
+#@ def vpcNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string:
+      fmt: "%s-vpc"  
+#@ end
+
+#@ def codeNameTagPatch():
+type: FromCompositeFieldPath
+toFieldPath: spec.forProvider.tags.tap
+fromFieldPath: spec.codeName
+#@ end
+
+#@ def azNamePatch(toFieldPath,az):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+transforms:
+  - type: string
+    string:
+      fmt: #@ "%s" + az  
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def subnetNamePatch(toFieldPath,type,az):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.region
+  strategy: string
+  string:
+    fmt: #@  "vpc-%s-" + type + "-subnet-%s" + az 
+#@ end
+
+
+
+
+
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-cluster
+  labels:
+    crossplane.io/xrd: xclusters.aws.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XCluster
+  resources:
+    
+    

@@ -1,0 +1,29 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xclusters.aws.tap.example.com
+spec:
+  group: aws.tap.example.com
+  names:
+    kind: XCluster
+    plural: xclusters
+  defaultCompositionRef:
+    name: tap-cluster
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              codeName: 
+                type: string
+              region:
+                type: string
+            required:
+            - codeName
+            - region
