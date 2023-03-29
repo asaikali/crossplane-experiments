@@ -1,0 +1,10 @@
+apiVersion: aws.tap.example.com/v1alpha1
+kind: XCluster
+metadata: 
+  name: green-tap-full
+spec: 
+  codeName: green-tap
+  region: us-east-2
+  profile: full
+  suffix: "1"
+  

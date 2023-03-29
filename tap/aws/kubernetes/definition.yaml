@@ -24,6 +24,21 @@ spec:
                 type: string
               region:
                 type: string
+              profile: 
+                type: string
+                description: The type of TAP profile to load onto the cluster
+                enum:
+                  - full
+                  - build
+                  - view
+                  - run
+                  - iterate
+              suffix: 
+                type: string
+                description: suffix to add to the generated name of the cluster
             required:
             - codeName
             - region
+            - profile
+            - suffix
+

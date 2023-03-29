@@ -156,6 +156,22 @@ spec:
   providerConfigRef:
     name: aws-upjet-provider
 
+---
+
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: OpenIDConnectProvider
+metadata:
+  name: example
+spec:
+  forProvider:
+    clientIdList: 
+      - sts.amazonaws.com
+    thumbprintList:
+      - "9e99a48a9960b14926bb7f3b02e22da2b0ab7280"
+    url: https://oidc.eks.us-east-2.amazonaws.com/id/BC3B1DD4A27EB3784801CC411B99870D
+  providerConfigRef:
+    name: aws-upjet-provider
+
 --- 
 
 apiVersion: kubernetes.crossplane.io/v1alpha1
@@ -184,3 +200,5 @@ spec:
         name: adib
   providerConfigRef:
     name:  eks-sample-cluster-config
+  
+

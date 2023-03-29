@@ -47,10 +47,114 @@ combine:
     fmt: #@  "vpc-%s-" + type + "-subnet-%s" + az 
 #@ end
 
+#@ def roleNamePatch(toFieldPath,suffix):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.profile
+    - fromFieldPath: spec.suffix
+  strategy: string
+  string:
+    fmt: #@ "%s-%s-%s-" + suffix
+#@ end
 
+#@ def eksControlPlaneRole():
+name: eks-control-plane-role
+base:
+  apiVersion: iam.aws.upbound.io/v1beta1
+  kind: Role
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      assumeRolePolicy: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "eks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+  - #@ codeNameTagPatch()
+  - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-cluster-role")
+#@ end
 
+#@ def eksControlPlaneRoleAttachment():
+name: eks-controlplane-role-attachment
+base:
+  apiVersion: iam.aws.upbound.io/v1beta1
+  kind: RolePolicyAttachment
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      policyArn: "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+      role: ""
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+   - #@ codeNameTagPatch()
+   - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-cluster-role")
+   - #@ roleNamePatch(toFieldPath="spec.forProvider.role",suffix="eks-cluster-role")
+#@ end
 
+#@ def eksNodeRole():
+name: eks-node-role
+base:
+  apiVersion: iam.aws.upbound.io/v1beta1
+  kind: Role
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      assumeRolePolicy: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+  - #@ codeNameTagPatch()
+  - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-node-role")
+#@ end
 
+#@ def eksNodeRoleAttachment(name,policyArn):
+name: #@ "eks-node-role-attachment-" + name
+base:
+  apiVersion: iam.aws.upbound.io/v1beta1
+  kind: RolePolicyAttachment
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      policyArn: #@ policyArn
+      role: ""
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+   - #@ codeNameTagPatch()
+   - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-node-role-"+name)
+   - #@ roleNamePatch(toFieldPath="spec.forProvider.role",suffix="eks-node-role")
+#@ end
 
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
@@ -63,5 +167,12 @@ spec:
     apiVersion: aws.tap.example.com/v1alpha1
     kind: XCluster
   resources:
-    
+    - #@ eksControlPlaneRole()
+    - #@ eksControlPlaneRoleAttachment()
+    - #@ eksNodeRole()
+    - #@ eksNodeRoleAttachment(name="node",policyArn="arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy")
+    - #@ eksNodeRoleAttachment(name="ecr",policyArn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly")
+    - #@ eksNodeRoleAttachment(name="cni",policyArn="arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy")
+
+
     
