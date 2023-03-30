@@ -3,6 +3,12 @@
 #! define a EKS clusters for tap
 #!
 
+#@ def labelObject():
+type: FromCompositeFieldPath
+toFieldPath: metadata.labels.tap
+fromFieldPath: spec.codeName
+#@ end
+
 #@ def vpcNamePatch(toFieldPath):
 type: FromCompositeFieldPath
 toFieldPath: #@ toFieldPath
@@ -87,6 +93,7 @@ base:
 patches:
   - #@ codeNameTagPatch()
   - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-cluster-role")
+  - #@ labelObject()
 #@ end
 
 #@ def eksControlPlaneRoleAttachment():
@@ -106,6 +113,7 @@ patches:
    - #@ codeNameTagPatch()
    - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-cluster-role")
    - #@ roleNamePatch(toFieldPath="spec.forProvider.role",suffix="eks-cluster-role")
+   - #@ labelObject()
 #@ end
 
 #@ def eksNodeRole():
@@ -135,6 +143,7 @@ base:
 patches:
   - #@ codeNameTagPatch()
   - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-node-role")
+  - #@ labelObject()
 #@ end
 
 #@ def eksNodeRoleAttachment(name,policyArn):
@@ -154,6 +163,135 @@ patches:
    - #@ codeNameTagPatch()
    - #@ roleNamePatch(toFieldPath="metadata.name",suffix="eks-node-role-"+name)
    - #@ roleNamePatch(toFieldPath="spec.forProvider.role",suffix="eks-node-role")
+   - #@ labelObject()
+#@ end
+
+
+#@ def clusterNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.profile
+    - fromFieldPath: spec.suffix
+  strategy: string
+  string:
+    fmt: "%s-%s-%s"
+#@ end
+
+#@ def oidcIssuerPatch():
+type: ToCompositeFieldPath
+fromFieldPath: status.atProvider.identity[0].oidc[0].issuer
+toFieldPath: status.oidcIssuer
+#@ end
+
+#@ def eksControlPlane():
+name: eks-control-plane
+base:
+  apiVersion: eks.aws.upbound.io/v1beta1
+  kind: Cluster
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      region: ""
+      roleArnRef:
+        name: ""
+      version: "1.25"
+      vpcConfig:
+        - subnetIdRefs:
+            - name: ""
+            - name: ""
+            - name: ""
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+  - #@ codeNameTagPatch()
+  - #@ roleNamePatch(toFieldPath="spec.forProvider.roleArnRef.name",suffix="eks-cluster-role")
+  - #@ clusterNamePatch(toFieldPath="metadata.name")
+  - #@ regionPatch(toFieldPath="spec.forProvider.region")
+  - #@ subnetNamePatch(toFieldPath="spec.forProvider.vpcConfig[0].subnetIdRefs[0].name",type="public",az="a")
+  - #@ subnetNamePatch(toFieldPath="spec.forProvider.vpcConfig[0].subnetIdRefs[1].name",type="public",az="b")
+  - #@ subnetNamePatch(toFieldPath="spec.forProvider.vpcConfig[0].subnetIdRefs[2].name",type="public",az="c")
+  - #@ oidcIssuerPatch()
+  - #@ labelObject()
+#@ end
+
+#@ def nodeGroupNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.profile
+    - fromFieldPath: spec.suffix
+  strategy: string
+  string:
+    fmt: "%s-%s-%s-node-group"
+#@ end
+
+#@ def eksNodeGroup():
+name: eks-node-group
+base: 
+  apiVersion: eks.aws.upbound.io/v1beta1
+  kind: NodeGroup
+  metadata:
+    name: node-group-1
+  spec:
+    forProvider:
+      clusterNameRef:
+        name: ""
+      nodeRoleArnRef:
+        name: ""
+      region: ""
+      instanceTypes:
+        - m5a.xlarge
+      subnetIdRefs:
+        - name: ""
+        - name: ""
+        - name: ""
+      scalingConfig:
+        - desiredSize: 3
+          maxSize: 3
+          minSize: 3
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+    - #@ codeNameTagPatch()
+    - #@ labelObject()
+    - #@ clusterNamePatch(toFieldPath="spec.forProvider.clusterNameRef.name")
+    - #@ nodeGroupNamePatch(toFieldPath="metadata.name")
+    - #@ roleNamePatch(toFieldPath="spec.forProvider.nodeRoleArnRef.name",suffix="eks-node-role")
+    - #@ regionPatch(toFieldPath="spec.forProvider.region")
+    - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[0].name",type="public",az="a")
+    - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[1].name",type="public",az="b")
+    - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[2].name",type="public",az="c")
+#@ end
+
+#@ def irsa():
+name: irsa
+base:
+  apiVersion: iam.aws.upbound.io/v1beta1
+  kind: OpenIDConnectProvider
+  metadata:
+    name: example
+  spec:
+    forProvider:
+      clientIdList: 
+        - sts.amazonaws.com
+      thumbprintList:
+        - "9e99a48a9960b14926bb7f3b02e22da2b0ab7280"
+      url: ""
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+  - #@ codeNameTagPatch()
+  - #@ labelObject()
+  - #@ clusterNamePatch(toFieldPath="metadata.name")
+  - type: FromCompositeFieldPath
+    toFieldPath: spec.forProvider.url
+    fromFieldPath: status.oidcIssuer
 #@ end
 
 apiVersion: apiextensions.crossplane.io/v1
@@ -165,7 +303,7 @@ metadata:
 spec:
   compositeTypeRef:
     apiVersion: aws.tap.example.com/v1alpha1
-    kind: XCluster
+    kind: XCluster     
   resources:
     - #@ eksControlPlaneRole()
     - #@ eksControlPlaneRoleAttachment()
@@ -173,6 +311,7 @@ spec:
     - #@ eksNodeRoleAttachment(name="node",policyArn="arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy")
     - #@ eksNodeRoleAttachment(name="ecr",policyArn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly")
     - #@ eksNodeRoleAttachment(name="cni",policyArn="arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy")
-
-
-    
+    - #@ eksControlPlane()
+    - #@ eksNodeGroup()
+    - #@ irsa()
+  

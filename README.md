@@ -27,3 +27,4 @@ Use the following process to install a provider:
 [Environments](https://github.com/crossplane/crossplane/blob/master/design/one-pager-composition-environment.md)
 [External Secrets](https://github.com/crossplane/crossplane/blob/master/design/design-doc-external-secret-stores.md)
 [Functions](https://github.com/crossplane/crossplane/blob/master/design/design-doc-composition-functions.md)
+[k8s API Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#multiple-resource-reference)

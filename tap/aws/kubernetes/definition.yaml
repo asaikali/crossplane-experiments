@@ -41,4 +41,8 @@ spec:
             - region
             - profile
             - suffix
-
+          status:
+            type: object
+            properties:
+              oidcIssuer: 
+                type: string
