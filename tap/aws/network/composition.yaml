@@ -3,6 +3,12 @@
 #! define the repo for object for tap 
 #!
 
+#@ def labelObject():
+type: FromCompositeFieldPath
+toFieldPath: metadata.labels.tap
+fromFieldPath: spec.codeName
+#@ end
+
 #@ def vpcNamePatch(toFieldPath):
 type: FromCompositeFieldPath
 toFieldPath: #@ toFieldPath
@@ -55,6 +61,7 @@ patches:
 - #@ vpcNamePatch(toFieldPath="spec.forProvider.tags.Name")
 - #@ vpcNamePatch(toFieldPath="metadata.name")
 - #@ codeNameTagPatch()
+- #@ labelObject()
 #@ end
 
 #@ def subnetNamePatch(toFieldPath,type,az):
@@ -96,6 +103,7 @@ patches:
 - #@ azNamePatch(az=az,toFieldPath="spec.forProvider.availabilityZone")
 - #@ subnetNamePatch(type=type,az=az,toFieldPath="spec.forProvider.tags.Name")
 - #@ subnetNamePatch(type=type,az=az,toFieldPath="metadata.name")
+- #@ labelObject()
 #@ end
 
 #@ def internetGatewayNamePatch(toFieldPath):
@@ -130,6 +138,7 @@ patches:
 - #@ vpcNamePatch(toFieldPath="spec.forProvider.vpcIdRef.name")
 - #@ internetGatewayNamePatch(toFieldPath="metadata.name")
 - #@ internetGatewayNamePatch(toFieldPath="spec.forProvider.tags.Name")
+- #@ labelObject()
 #@ end
 
 #@ def defaultRouteTableNamePatch(toFieldPath):
@@ -168,6 +177,7 @@ patches:
 - #@ internetGatewayNamePatch(toFieldPath="spec.forProvider.route[0].gatewayIdRef.name")
 - #@ defaultRouteTableNamePatch(toFieldPath="spec.forProvider.tags.Name")
 - #@ vpcNamePatch(toFieldPath="spec.forProvider.defaultRouteTableIdRef.name")
+- #@ labelObject()
 #@ end
 
 
@@ -181,6 +191,12 @@ spec:
   compositeTypeRef:
     apiVersion: aws.tap.example.com/v1alpha1
     kind: XNetwork
+  patchSets:
+    - name: codeNameLabel
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.codeName
+          toFieldPath: metadata.labels.tap
   resources:
     - #@ vpc()
     - #@ subnet(az="a", cidr="10.0.0.0/19", type="public")
