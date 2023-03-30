@@ -17,3 +17,7 @@ Use the following process to install a provider:
 1. kubctl apply the provider yaml
 2. `kubectl get Providers` and wait for the provider to show healthy status
 3. run the `configure.sh` script to configrue the provider
+
+## Resources 
+
+[Environments](https://github.com/crossplane/crossplane/blob/master/design/one-pager-composition-environment.md)
