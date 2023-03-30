@@ -22,6 +22,7 @@ Use the following process to install a provider:
 
 ### Design docs
 
+[k8s provider](https://github.com/crossplane-contrib/provider-kubernetes/blob/main/docs/enhanced-provider-k8s.md)
 [Cross Resource References](https://github.com/crossplane/crossplane/blob/master/design/one-pager-cross-resource-referencing.md)
 [Environments](https://github.com/crossplane/crossplane/blob/master/design/one-pager-composition-environment.md)
 [External Secrets](https://github.com/crossplane/crossplane/blob/master/design/design-doc-external-secret-stores.md)
