@@ -269,6 +269,80 @@ patches:
     - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[2].name",type="public",az="c")
 #@ end
 
+
+#@ def codeNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+#@ end
+
+#@ def clusterAuth():
+name: cluster-auth
+base:
+  apiVersion: eks.aws.upbound.io/v1beta1
+  kind: ClusterAuth
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      clusterName: ""
+      region: ""
+    writeConnectionSecretToRef:
+      name: cluster-conn
+      namespace: green-tap
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+  - #@ codeNameTagPatch()
+  - #@ labelObject()
+  - #@ clusterNamePatch(toFieldPath="metadata.name")
+  - #@ clusterNamePatch(toFieldPath="spec.forProvider.clusterName")
+  - #@ clusterNamePatch(toFieldPath="spec.writeConnectionSecretToRef.name")
+  - #@ regionPatch(toFieldPath="spec.forProvider.region")
+  - #@ codeNamePatch(toFieldPath="spec.writeConnectionSecretToRef.namespace")
+#@ end
+
+#@ def providerConfig():
+name: provider-config
+base:
+  apiVersion: kubernetes.crossplane.io/v1alpha1
+  kind: ProviderConfig
+  metadata:
+    name: ""
+  spec:
+    credentials:
+      secretRef:
+        key: "kubeconfig"
+        name: ""
+        namespace: ""
+      source: Secret
+patches:
+  - #@ labelObject()
+  - #@ clusterNamePatch(toFieldPath="metadata.name")
+  - #@ clusterNamePatch(toFieldPath="spec.credentials.secretRef.name")
+  - #@ codeNamePatch(toFieldPath="spec.credentials.secretRef.namespace")
+#@ end
+
+#@ def testObject():
+name: test-object
+base:
+  apiVersion: kubernetes.crossplane.io/v1alpha1
+  kind: Object
+  metadata:
+    name: foo
+  spec:
+    forProvider:
+      manifest:
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: validation
+    providerConfigRef:
+      name:  eks-sample-cluster-config
+patches:
+  - #@ clusterNamePatch(toFieldPath="spec.providerConfigRef.name")
+#@ end
+
 #@ def irsa():
 name: irsa
 base:
@@ -313,5 +387,8 @@ spec:
     - #@ eksNodeRoleAttachment(name="cni",policyArn="arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy")
     - #@ eksControlPlane()
     - #@ eksNodeGroup()
+    - #@ clusterAuth()
     - #@ irsa()
+    - #@ providerConfig()
+    - #@ testObject()
   
