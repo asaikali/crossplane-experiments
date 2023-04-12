@@ -1,0 +1,48 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xclusters.azure.tap.example.com
+spec:
+  group: azure.tap.example.com
+  names:
+    kind: XCluster
+    plural: xclusters
+  defaultCompositionRef:
+    name: tap-cluster
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              codeName: 
+                type: string
+              region:
+                type: string
+              profile: 
+                type: string
+                description: The type of TAP profile to load onto the cluster
+                enum:
+                  - full
+                  - build
+                  - view
+                  - run
+                  - iterate
+              suffix: 
+                type: string
+                description: suffix to add to the generated name of the cluster
+            required:
+            - codeName
+            - region
+            - profile
+            - suffix
+          status:
+            type: object
+            properties:
+              oidcIssuer: 
+                type: string
