@@ -7,7 +7,7 @@ spec:
   installNamespace: green-tap-install
   tanzuNetSecret: tanzunet
   version:
-    tap: "1.5.0-rc.9"
+    tap: "1.5.0-rc.20"
     cluster-essentials: "2354688e46d4bb4060f74fca069513c9b42ffa17a0a6d5b0dbb81ed52242ea44"
   registry:
     region: us-east-2
