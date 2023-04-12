@@ -1,0 +1,10 @@
+apiVersion: azure.tap.example.com/v1alpha1
+kind: XCluster
+metadata: 
+  name: blue-tap-full
+spec: 
+  codeName: blue-tap
+  region: Canada Central
+  profile: full
+  suffix: "1"
+  
