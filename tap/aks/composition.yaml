@@ -1,0 +1,74 @@
+#! 
+#! define a AKS clusters for tap
+#!
+
+#@ def clusterNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.profile
+    - fromFieldPath: spec.suffix
+  strategy: string
+  string:
+    fmt: "%s-%s-%s"
+#@ end
+
+#@ def codeNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def aksCluster():
+name: aks-cluster
+base:
+  apiVersion: containerservice.azure.upbound.io/v1beta1
+  kind: KubernetesCluster
+  metadata:
+    name:
+  spec:
+    providerConfigRef:
+      name: azure-upjet-provider
+    forProvider:
+      defaultNodePool:
+        - name: default
+          nodeCount: 1
+          vmSize: Standard_D2_v2
+      dnsPrefix: tap
+      identity:
+        - type: SystemAssigned
+      location:
+      resourceGroupNameRef:
+        name: crossplane-example-upjet-azure-rg
+      tags:
+        Environment: Production
+    writeConnectionSecretToRef:
+      name:
+      namespace: default
+patches:
+  - #@ clusterNamePatch(toFieldPath="metadata.name")
+  - #@ regionPatch(toFieldPath="spec.forProvider.location")
+  - #@ clusterNamePatch(toFieldPath="spec.writeConnectionSecretToRef.name")
+
+#@ end
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-cluster
+  labels:
+    crossplane.io/xrd: xclusters.azure.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: azure.tap.example.com/v1alpha1
+    kind: XCluster     
+  resources:
+    - #@ aksCluster()
