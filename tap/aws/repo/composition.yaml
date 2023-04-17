@@ -59,7 +59,7 @@ patches:
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tap-ecr-repo
+  name: tap-repo-aws-ecr
   labels:
     crossplane.io/xrd: xrepos.aws.tap.example.com
 spec:
