@@ -1,0 +1,71 @@
+
+#! 
+#! define the repo for object for tap 
+#!
+
+#@ def codeNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def repoNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.repoName
+  strategy: string
+  string:
+    fmt: "%s-%s" 
+#@ end
+
+#@ def repo():
+name: create-repo
+base:
+  apiVersion: ecr.aws.upbound.io/v1beta1
+  kind: Repository
+  spec:
+    forProvider:
+      region: eu-west-1
+      imageScanningConfiguration:
+        - scanOnPush: false
+      imageTagMutability: IMMUTABLE
+    providerConfigRef:
+      name: aws-upjet-provider
+patches:
+  #! - #@ repoNamePatch(toFieldPath="spec.writeConnectionSecretToRef.name")
+  #! - #@ codeNamePatch(toFieldPath="spec.writeConnectionSecretToRef.namespace")
+  - #@ codeNamePatch(toFieldPath="metadata.labels.tap")
+  - #@ codeNamePatch(toFieldPath="spec.forProvider.tags.tap")
+  - #@ codeNamePatch(toFieldPath="spec.forProvider.tags.Name")
+  - #@ regionPatch(toFieldPath="spec.forProvider.region")
+  - #@ repoNamePatch(toFieldPath="metadata.name")
+  - type: ToCompositeFieldPath
+    fromFieldPath: status.atProvider.repositoryUri
+    toFieldPath: status.repositoryUri
+  - type: ToCompositeFieldPath
+    fromFieldPath: status.atProvider.repositoryName
+    toFieldPath: status.repositoryName
+#@ end
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-ecr-repo
+  labels:
+    crossplane.io/xrd: xrepos.aws.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XRepo
+  writeConnectionSecretsToNamespace: crossplane-system
+  resources:
+    - #@ repo()

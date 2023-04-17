@@ -1,0 +1,43 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xrepos.aws.tap.example.com
+spec:
+  group: aws.tap.example.com
+  names:
+    kind: XRepo
+    plural: xrepos
+  defaultCompositionRef:
+    name: tap-ecr-repo
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              codeName: 
+                type: string
+                description: The code name of the environment this repo belongs to
+              repoName: 
+                type: string 
+                description: The naem of the repository to use 
+              region:
+                type: string
+                description: the region to create the repo in 
+            required:
+            - codeName
+            - region
+          status:
+            type: object
+            properties:
+              repositoryName:
+                description: the name of the created repo 
+                type: string
+              repositoryUri:
+                description: The url of the registry repo 
+                type: string

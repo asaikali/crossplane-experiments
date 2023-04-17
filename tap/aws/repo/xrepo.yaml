@@ -1,0 +1,8 @@
+apiVersion: aws.tap.example.com/v1alpha1
+kind: XRepo
+metadata:
+  name: green-tap-cluster-essentials
+spec:
+  codeName: green-tap
+  repoName: cluster-essentials
+  region: us-east-2
