@@ -32,7 +32,7 @@ patches:
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tap-deployment
+  name: tap-deployment-aws
   labels:
     crossplane.io/xrd: xdeployments.aws.tap.example.com
 spec:
