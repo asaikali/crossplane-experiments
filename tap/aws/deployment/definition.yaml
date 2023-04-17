@@ -56,11 +56,36 @@ spec:
                 required: 
                 - tap
                 - cluster-essentials
+              clusters: 
+                type: object
+                properties: 
+                   view: 
+                    type: object
+                    properties: 
+                      kubernetes: 
+                        type: object 
+                        properties: 
+                          version:
+                            type: string
+                          nodeCount: 
+                            type: integer
+                          machineType:
+                            type: string 
+                        required:
+                          - version
+                          - nodeCount
+                          - machineType
+                    required: 
+                      - kubernetes
+                required: 
+                  - view
+  
             required:
             - codeName
             - region 
             - installNamespace
             - tanzuNetSecret
             - version
+            - clusters
 
             

@@ -43,6 +43,59 @@ patches:
   - #@ repoNamePatch(toFieldPath="metadata.name",name=name)
 #@ end
 
+#@ def clusterNamePatch(toFieldPath,suffix):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string: 
+     fmt: #@ "%s-" + suffix 
+#@ end
+
+#@ def k8sVersionPatch(profile):
+type: FromCompositeFieldPath
+toFieldPath: spec.version
+fromFieldPath: #@ "spec.clusters." + profile + ".kubernetes.version"
+#@ end
+
+#@ def k8sNodeCountPatch(profile):
+type: FromCompositeFieldPath
+toFieldPath: spec.nodeCount
+fromFieldPath: #@ "spec.clusters." + profile + ".kubernetes.nodeCount"
+#@ end
+
+#@ def k8sMachineTypePatch(profile):
+type: FromCompositeFieldPath
+toFieldPath: spec.machineType
+fromFieldPath: #@ "spec.clusters." + profile + ".kubernetes.machineType"
+#@ end
+
+
+#@ def cluster(profile):
+name: #@ profile + "-cluster"
+base:
+  apiVersion: aws.tap.example.com/v1alpha1
+  kind: XCluster
+  metadata: 
+    name: green-tap-full
+  spec: 
+    codeName: ""
+    region: ""
+    profile: #@ profile
+    suffix: "1"
+    machineType: ""
+    version: ""
+    nodeCount: 0
+patches:
+   - #@ regionPatch(toFieldPath="spec.region")
+   - #@ codeNamePatch(toFieldPath="spec.codeName")
+   - #@ clusterNamePatch(toFieldPath="metadata.name",suffix=profile)
+   - #@ k8sVersionPatch(profile=profile)
+   - #@ k8sNodeCountPatch(profile=profile)
+   - #@ k8sMachineTypePatch(profile=profile)
+#@ end
+
 #@ def networkNamePatch(toFieldPath,name):
 type: FromCompositeFieldPath
 toFieldPath: #@ toFieldPath
@@ -84,3 +137,4 @@ spec:
     - #@ repo("cluster-essentials")
     - #@ repo("tap-packages")
     - #@ vpc()
+    - #@ cluster(profile="view")

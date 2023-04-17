@@ -5,6 +5,30 @@ metadata:
 spec: 
   codeName: green-tap
   region: us-east-2
+  clusters: 
+    view: 
+      kubernetes: 
+        version: "1.25"
+        nodeCount: 3
+        machineType: m5a.xlarge
+  #   build: 
+  #     kubernetes: 
+  #       version: "1.25"
+  #       nodeCount: 3
+  #       machineType: m5a.xlarge
+  #   iterate: 
+  #     kubernetes: 
+  #       version: "1.25"
+  #       nodeCount: 3
+  #       machineType: m5a.xlarge
+  #   run-primary: 
+  #     kubernetes: 
+  #       version: "1.25"
+  #       nodeCount: 3
+  #       machineType: m5a.xlarge
+
+
+
   installNamespace: green-tap-install
   tanzuNetSecret: tanzunet
   version:
