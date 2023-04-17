@@ -4,7 +4,7 @@ kind: Provider
 metadata:
   name: provider-aws-upjet
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws:v0.31.0
+  package: xpkg.upbound.io/upbound/provider-aws:v0.32.1
 
 #
 # You can deploy the provider by using kubectl apply -f aws-provider.yaml
