@@ -184,7 +184,7 @@ patches:
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tap-vpc
+  name: tap-network-aws-vpc
   labels:
     crossplane.io/xrd: xnetworks.aws.tap.example.com
 spec:
