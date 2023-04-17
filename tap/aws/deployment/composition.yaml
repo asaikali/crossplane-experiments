@@ -38,9 +38,36 @@ base:
     region: ""
 patches:
   - #@ regionPatch(toFieldPath="spec.region")
-  - #@ repoNamePatch(toFieldPath="metadata.name",name=name)
   - #@ codeNamePatch(toFieldPath="spec.codeName")
   - #@ codeNamePatch(toFieldPath="metadata.labels.tap")
+  - #@ repoNamePatch(toFieldPath="metadata.name",name=name)
+#@ end
+
+#@ def networkNamePatch(toFieldPath,name):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string: 
+     fmt: #@ "%s-" + name 
+#@ end
+
+#@ def vpc():
+name: vpc
+base: 
+  apiVersion: aws.tap.example.com/v1alpha1
+  kind: XNetwork
+  metadata: 
+    name: green-tap-network
+  spec: 
+    codeName: ""
+    region: ""
+patches:
+  - #@ regionPatch(toFieldPath="spec.region")
+  - #@ codeNamePatch(toFieldPath="spec.codeName")
+  - #@ codeNamePatch(toFieldPath="metadata.labels.tap")
+  - #@ networkNamePatch(toFieldPath="metadata.name",name="network")
 #@ end
 
 apiVersion: apiextensions.crossplane.io/v1
@@ -56,3 +83,4 @@ spec:
   resources:
     - #@ repo("cluster-essentials")
     - #@ repo("tap-packages")
+    - #@ vpc()
