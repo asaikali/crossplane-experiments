@@ -7,4 +7,6 @@ spec:
   region: us-east-2
   profile: full
   suffix: "1"
-  
+  machineType: m5a.xlarge
+  version: "1.25"
+  nodeCount: 3

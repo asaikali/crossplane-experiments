@@ -186,6 +186,12 @@ fromFieldPath: status.atProvider.identity[0].oidc[0].issuer
 toFieldPath: status.oidcIssuer
 #@ end
 
+#@ def versionPatch():
+type: FromCompositeFieldPath
+toFieldPath: spec.forProvider.version
+fromFieldPath: spec.version
+#@ end
+
 #@ def eksControlPlane():
 name: eks-control-plane
 base:
@@ -198,7 +204,7 @@ base:
       region: ""
       roleArnRef:
         name: ""
-      version: "1.25"
+      version: ""
       vpcConfig:
         - subnetIdRefs:
             - name: ""
@@ -215,6 +221,7 @@ patches:
   - #@ subnetNamePatch(toFieldPath="spec.forProvider.vpcConfig[0].subnetIdRefs[1].name",type="public",az="b")
   - #@ subnetNamePatch(toFieldPath="spec.forProvider.vpcConfig[0].subnetIdRefs[2].name",type="public",az="c")
   - #@ oidcIssuerPatch()
+  - #@ versionPatch()
   - #@ labelObject()
 #@ end
 
@@ -229,6 +236,19 @@ combine:
   strategy: string
   string:
     fmt: "%s-%s-%s-node-group"
+#@ end
+
+
+#@ def machineTypePatch():
+type: FromCompositeFieldPath
+toFieldPath: spec.forProvider.instanceTypes[0]
+fromFieldPath: spec.machineType
+#@ end
+
+#@ def nodeCountPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.nodeCount
 #@ end
 
 #@ def eksNodeGroup():
@@ -246,7 +266,7 @@ base:
         name: ""
       region: ""
       instanceTypes:
-        - m5a.xlarge
+        - ""
       subnetIdRefs:
         - name: ""
         - name: ""
@@ -267,6 +287,10 @@ patches:
     - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[0].name",type="public",az="a")
     - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[1].name",type="public",az="b")
     - #@ subnetNamePatch(toFieldPath="spec.forProvider.subnetIdRefs[2].name",type="public",az="c")
+    - #@ machineTypePatch()
+    - #@ nodeCountPatch(toFieldPath="spec.forProvider.scalingConfig[0].desiredSize")
+    - #@ nodeCountPatch(toFieldPath="spec.forProvider.scalingConfig[0].maxSize")
+    - #@ nodeCountPatch(toFieldPath="spec.forProvider.scalingConfig[0].minSize")
 #@ end
 
 
@@ -390,5 +414,4 @@ spec:
     - #@ clusterAuth()
     - #@ irsa()
     - #@ providerConfig()
-    - #@ testObject()
   

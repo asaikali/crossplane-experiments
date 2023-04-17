@@ -24,6 +24,12 @@ spec:
                 type: string
               region:
                 type: string
+              machineType: 
+                type: string
+              version: 
+                type: string
+              nodeCount: 
+                type: integer
               profile: 
                 type: string
                 description: The type of TAP profile to load onto the cluster
@@ -41,6 +47,9 @@ spec:
             - region
             - profile
             - suffix
+            - machineType
+            - version
+            - nodeCount
           status:
             type: object
             properties:
