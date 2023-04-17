@@ -8,7 +8,7 @@ spec:
     kind: XRepo
     plural: xrepos
   defaultCompositionRef:
-    name: tap-repo-aws-ecr
+    name: tap-aws-repo-ecr
   versions:
   - name: v1alpha1
     served: true

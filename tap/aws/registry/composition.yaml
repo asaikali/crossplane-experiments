@@ -41,7 +41,7 @@ patches:
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tap-ecr-registry
+  name: tap-aws-registry-ecr
   labels:
     crossplane.io/xrd: xregistries.aws.tap.example.com
 spec:

@@ -11,7 +11,7 @@ spec:
     kind: Deployment
     plural: deployments
   defaultCompositionRef:
-    name: tap-deployment-aws
+    name: tap-aws-deployment
   versions:
   - name: v1alpha1
     served: true

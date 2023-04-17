@@ -11,7 +11,7 @@ spec:
   #   kind: Registry
   #   plural: registries
   defaultCompositionRef:
-    name: tap-ecr-registry
+    name: tap-aws-registry-ecr
   versions:
   - name: v1alpha1
     served: true
