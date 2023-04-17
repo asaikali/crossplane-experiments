@@ -1,1 +1,1 @@
-kubectl get xrepos,Repository.ecr.aws.upbound.io
+kubectl get xdeployments,xrepos,Repository.ecr.aws.upbound.io
