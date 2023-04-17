@@ -1,0 +1,26 @@
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: User
+metadata:
+  name: sample-user
+spec:
+  forProvider: {}
+  providerConfigRef:
+    name: aws-upjet-provider
+
+--- 
+
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: AccessKey
+metadata:
+  labels:
+    testing.upbound.io/example-name: user
+  name: sample-user-access-key
+spec:
+  forProvider:
+    userRef:
+      name: sample-user
+  writeConnectionSecretToRef:
+    name: sample-access-key-secret
+    namespace: default
+  providerConfigRef:
+    name: aws-upjet-provider

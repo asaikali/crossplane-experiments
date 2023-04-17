@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scripts
+  namespace: crossplane-system
+data:
+  install.sh: |
+    echo "hello there"
+    export HOME=/tmp
+    ls -lah /aws/credentials
+    aws configure
+    aws ecr describe-repositories --region ${REGION}
+    ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+    export IMGPKG_REGISTRY_HOSTNAME_1=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+    export IMGPKG_REGISTRY_USERNAME_1=AWS
+    export IMGPKG_REGISTRY_PASSWORD_1=$(aws ecr get-login-password --region ${REGION})
+    /usr/local/bin/imgpkg copy -b \
+      registry.tanzu.vmware.com/tanzu-cluster-essentials/cluster-essentials-bundle@sha256:${CLUSTER_ESSENTIALS_SHA256} \
+      --to-repo ${IMGPKG_REGISTRY_HOSTNAME_1}/green-tap-cluster-essentials \
+      --concurrency 2 \
+      --tty
+    /usr/local/bin/imgpkg copy -b \
+      registry.tanzu.vmware.com/tanzu-application-platform/tap-packages:${TAP_VERSION} \
+      --to-repo ${IMGPKG_REGISTRY_HOSTNAME_1}/green-tap-tap-packages \
+       --include-non-distributable-layers
+      --concurrency 1 \
+      --tty
+      
+    echo "----- SUCCESS"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: relocate-images
+  namespace: crossplane-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: scripts-volume
+          configMap:
+            name: scripts
+        - name: aws-access-key
+          secret:
+            secretName: aws-upjet-provider-creds
+      containers:
+      - name: relocate-images
+        image: ghcr.io/asaikali/tap-shell:main
+        command: ["/bin/bash"]
+        args: 
+        - /scripts/install.sh
+        securityContext:
+          runAsUser: 1000
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: scripts-volume
+          mountPath: /scripts
+        - name: aws-access-key
+          mountPath: /aws/credentials
+        env: 
+        - name: REGION
+          value: us-east-2
+        - name: TAP_VERSION
+          value: "1.5.0"
+        - name: IMGPKG_REGISTRY_HOSTNAME_0
+          value: registry.tanzu.vmware.com
+        - name: IMGPKG_REGISTRY_USERNAME_0
+          valueFrom:
+            secretKeyRef:
+              name: tanzunet
+              key: username
+              optional: false
+        - name: IMGPKG_REGISTRY_PASSWORD_0
+          valueFrom:
+            secretKeyRef:
+              name: tanzunet
+              key: password
+              optional: false 
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /aws/credentials/creds
+        - name: CLUSTER_ESSENTIALS_SHA256
+          value: 2354688e46d4bb4060f74fca069513c9b42ffa17a0a6d5b0dbb81ed52242ea44
+    
+        
+        
+       
