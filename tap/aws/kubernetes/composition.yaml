@@ -371,7 +371,7 @@ patches:
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tap-eks-cluster
+  name: tap-cluster-eks
   labels:
     crossplane.io/xrd: xclusters.aws.tap.example.com
 spec:

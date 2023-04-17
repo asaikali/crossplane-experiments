@@ -8,7 +8,7 @@ spec:
     kind: XCluster
     plural: xclusters
   defaultCompositionRef:
-    name: tap-eks-cluster
+    name: tap-cluster-eks
   versions:
   - name: v1alpha1
     served: true
