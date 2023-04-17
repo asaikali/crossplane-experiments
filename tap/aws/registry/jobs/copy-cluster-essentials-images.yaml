@@ -1,0 +1,77 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: copy-cluster-essentials-images
+  namespace: tap-install
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: image-relocate
+        image: ghcr.io/asaikali/tap-shell:main
+        command: ["/usr/local/bin/imgpkg"]
+        args:
+        - "copy"
+        - "-b"
+        - "registry.tanzu.vmware.com/tanzu-cluster-essentials/cluster-essentials-bundle@sha256:$(CLUSTER_ESSENTIALS_SHA256)"
+        - "--to-repo"
+        - "$(TAP_REGISTRY_REPO)/cluster-essentials-bundle"
+        - "--tty"
+        #["$(IMGPKG_REGISTRY_HOSTNAME_0) $(IMGPKG_REGISTRY_USERNAME_0) $(IMGPKG_REGISTRY_PASSWORD_0) $(IMGPKG_REGISTRY_HOSTNAME_1) $(IMGPKG_REGISTRY_USERNAME_1) $(IMGPKG_REGISTRY_PASSWORD_1)"]
+        securityContext:
+          runAsUser: 1000
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "256Mi"
+        env:
+        - name: IMGPKG_REGISTRY_HOSTNAME_0
+          value: registry.tanzu.vmware.com
+        - name: IMGPKG_REGISTRY_USERNAME_0
+          valueFrom:
+            secretKeyRef:
+              name: tanzunet
+              key: username
+              optional: false
+        - name: IMGPKG_REGISTRY_PASSWORD_0
+          valueFrom:
+            secretKeyRef:
+              name: tanzunet
+              key: password
+              optional: false 
+        - name: IMGPKG_REGISTRY_HOSTNAME_1
+          valueFrom:
+            secretKeyRef:
+              name: tap-registry
+              key: host
+              optional: false
+        - name: IMGPKG_REGISTRY_USERNAME_1
+          valueFrom:
+            secretKeyRef:
+              name: tap-registry
+              key: username
+              optional: false
+        - name: IMGPKG_REGISTRY_PASSWORD_1
+          valueFrom:
+            secretKeyRef:
+              name: tap-registry
+              key: password
+              optional: false
+        - name: TAP_REGISTRY_REPO
+          valueFrom:
+            secretKeyRef:
+              name: tap-registry
+              key: repo
+              optional: false
+        - name: CLUSTER_ESSENTIALS_SHA256
+          valueFrom:
+            configMapKeyRef:
+              name: versions
+              key: tanzu_cluster_essentials
+              optional: false
+
+        
