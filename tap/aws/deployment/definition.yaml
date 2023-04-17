@@ -30,6 +30,9 @@ spec:
                   cloud resources that are part of the TAP deployment. It is
                   also used to tag  cloud resoures to easily find all the 
                   resources that are part of the deployment. 
+              region: 
+                type: string
+                description: The region to create ECR tap repos in
               installNamespace: 
                 type: string
                 description: | 
@@ -53,18 +56,11 @@ spec:
                 required: 
                 - tap
                 - cluster-essentials
-              registry: 
-                type: object
-                properties: 
-                  region: 
-                    type: string
-                    description: The region to create ECR tap repos in
-                required:
-                - region
             required:
             - codeName
+            - region 
             - installNamespace
             - tanzuNetSecret
             - version
-            - registry
+
             

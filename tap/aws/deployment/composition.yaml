@@ -3,30 +3,44 @@
 #! define the repo for object for tap 
 #!
 
-#@ def registry(name):
+#@ def codeNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def repoNamePatch(toFieldPath,name):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.codeName
+transforms:
+  - type: string
+    string: 
+     fmt: #@ "%s-" + name 
+#@ end
+
+#@ def repo(name):
 name: #@ name
 base:
   apiVersion: aws.tap.example.com/v1alpha1
-  kind: XRegistry
+  kind: XRepo
   metadata:
-    name: blue-tap-registry
+    name: ""
   spec:
-    codeName: blue-tap
-    region: us-east-1
+    codeName: ""
+    repoName: #@ name
+    region: ""
 patches:
-  - type: FromCompositeFieldPath
-    fromFieldPath: spec.registry.region
-    toFieldPath: spec.region
-  - type: FromCompositeFieldPath
-    fromFieldPath: spec.codeName
-    toFieldPath: spec.codeName
-  - type: FromCompositeFieldPath
-    fromFieldPath: spec.codeName
-    toFieldPath: metadata.name
-    transforms:
-      - type: string
-        string:
-          fmt: "%s-registry"  
+  - #@ regionPatch(toFieldPath="spec.region")
+  - #@ repoNamePatch(toFieldPath="metadata.name",name=name)
+  - #@ codeNamePatch(toFieldPath="spec.codeName")
+  - #@ codeNamePatch(toFieldPath="metadata.labels.tap")
 #@ end
 
 apiVersion: apiextensions.crossplane.io/v1
@@ -40,4 +54,5 @@ spec:
     apiVersion: aws.tap.example.com/v1alpha1
     kind: XDeployment
   resources:
-    - #@ registry("tap-registry")
+    - #@ repo("cluster-essentials")
+    - #@ repo("tap-packages")

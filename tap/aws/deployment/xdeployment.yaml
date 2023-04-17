@@ -4,46 +4,9 @@ metadata:
   name: green-tap
 spec: 
   codeName: green-tap
+  region: us-east-2
   installNamespace: green-tap-install
   tanzuNetSecret: tanzunet
   version:
     tap: "1.5.0-rc.20"
     cluster-essentials: "2354688e46d4bb4060f74fca069513c9b42ffa17a0a6d5b0dbb81ed52242ea44"
-  registry:
-    region: us-east-2
-  # clusters: 
-  #   regions: 
-  #     - east-us2
-  #     - west-us2
-  #     - central-us1
-  #   instances: 
-  #     - name: view
-  #       profile: view
-  #       region: east-us2
-  #       eksConfig:
-  #         nodeCount: 4
-  #         machineType: m5.large
-  #         kubernetesVersion: "1.23"
-  #     - name: build
-  #       profile: build
-  #       region: east-us2
-  #       eksConfig:
-  #         nodesCount: 3
-  #         machineType: m5.large
-  #         k8sVersion: "1.25"
-  #     - name: iterate
-  #       profile: iterate
-  #       region: east-us2
-  #       eksConfig:
-  #         nodesCount: 3
-  #         machineType: m5.large
-  #         k8sVersion: "1.25"
-  #     - name: run-primary
-  #       profile: run
-  #       region: east-us2
-  #       eksConfig:
-  #         nodesCount: 3
-  #         machineType: m5.large
-  #         k8sVersion: "1.25"
-
-

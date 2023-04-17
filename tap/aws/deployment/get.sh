@@ -1,0 +1,1 @@
+kubectl get xrepos,Repository.ecr.aws.upbound.io
