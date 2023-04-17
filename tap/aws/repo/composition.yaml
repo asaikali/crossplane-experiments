@@ -66,6 +66,5 @@ spec:
   compositeTypeRef:
     apiVersion: aws.tap.example.com/v1alpha1
     kind: XRepo
-  writeConnectionSecretsToNamespace: crossplane-system
   resources:
     - #@ repo()
