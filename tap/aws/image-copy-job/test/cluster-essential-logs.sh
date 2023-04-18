@@ -1,2 +1,1 @@
-kubectl delete -f ximagecopies.yaml 
-kubectl apply -f ximagecopies.yaml 
+kubectl logs job.batch/green-tap-copy-images-to-cluster-essentials -n crossplane-system
