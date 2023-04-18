@@ -1,0 +1,54 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xclusteressentialsjobs.aws.tap.example.com
+spec:
+  group: aws.tap.example.com
+  names:
+    kind: XClusterEssentialsJob
+    plural: xclusteressentialsjobs
+  defaultCompositionRef:
+    name: tap-install-cluster-essentials
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              codeName: 
+                type: string
+                description: |
+                  a short string that is prefixed orsuffixed to names of 
+                  cloud resources that are part of the TAP deployment. It is
+                  also used to tag  cloud resoures to easily find all the 
+                  resources that are part of the deployment. 
+              region: 
+                type: string
+                description: The region to create ECR tap repos in
+              toRepoName:
+                type: string
+              fromRepoUrl:
+                type: string 
+              jobNamespace: 
+                type: string
+                description: |
+                  the name of the namespace where the job will be created
+                  the namespace must have a secert to access tanzuNet 
+              tanzuNetSecret: 
+                  type: string
+                  description: |
+                    the name of tanzunet secret 
+            required:
+            - codeName
+            - toRepoName
+            - fromRepoUrl
+            - region 
+            - jobNamespace
+            - tanzuNetSecret
+      
+            
