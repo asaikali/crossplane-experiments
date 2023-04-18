@@ -27,8 +27,8 @@ base:
         data:
           imgpkg-copy.sh: |
             echo "----------------------START--------------------------------"
-
-            echo "--- Copying image inputs"
+            echo ""
+            echo "--- Environment variables"
             echo "AWS_SHARED_CREDENTIALS_FILE=${AWS_SHARED_CREDENTIALS_FILE}"
             echo "REGION=${REGION}"
             echo "REPO_NAME=${REPO_NAME}"
@@ -43,9 +43,6 @@ base:
             echo ""
             echo "--- configure aws cli"
             aws configure
-
-            echo ""
-            echo "--- determie account id"
             ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
             echo "ACCOUNT_ID=${ACCOUNT_ID}"
 
@@ -54,19 +51,20 @@ base:
             export IMGPKG_REGISTRY_PASSWORD_1=$(aws ecr get-login-password --region ${REGION})
  
             echo ""
-            echo "--- destination repo"
+            echo "--- copy from / to"
             TO_REPO=${IMGPKG_REGISTRY_HOSTNAME_1}/${REPO_NAME}
-            echo "TO_REPO=${TO_REPO}"
+            echo "from: ${FROM_REPO}"
+            echo "to  : ${TO_REPO}"
 
             echo ""
-            set -x
+            echo "--- run imgpkg"
+
             /usr/local/bin/imgpkg copy -b \
               ${FROM_REPO} \
               --to-repo ${TO_REPO} \
               --concurrency 1 \
               --tty
-            set +x
-
+           
             echo ""
             echo "----------------------FINISH--------------------------------"
     providerConfigRef:
@@ -93,6 +91,7 @@ combine:
     fmt: "%s-%s"
 #@ end
 
+
 #@ def fromRepoNamePatch(toFieldPath):
 type: FromCompositeFieldPath
 toFieldPath: #@ toFieldPath
@@ -105,21 +104,34 @@ toFieldPath: #@ toFieldPath
 fromFieldPath: spec.tanzuNetSecret
 #@ end
 
-#@ def copyJob(repoName):
-name: #@ "copy-" + repoName
+#@ def jobNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.toRepoName
+  strategy: string
+  string:
+    fmt: "%s-copy-images-to-%s"
+#@ end
+
+
+#@ def copyJob():
+name: imgpkg-copy
 base:
   apiVersion: kubernetes.crossplane.io/v1alpha1
   kind: Object
   metadata:
     #! nameGenerator: #@ "copy-" + repoName + "-"
-    name: #@ "copy-" + repoName
+    name: ""
   spec:
     forProvider:
       manifest:
         apiVersion: batch/v1
         kind: Job
         metadata:
-          generateName: #@ "copy-images-to-" + repoName + "-"
+          name: ""
           namespace: ""
         spec:
           backoffLimit: 0
@@ -180,6 +192,8 @@ base:
       name: local-kubernetes-provider
 patches:
   - #@ patchJobNamespace()
+  - #@ jobNamePatch(toFieldPath="metadata.name")
+  - #@ jobNamePatch(toFieldPath="spec.forProvider.manifest.metadata.name")
   - #@ regionPatch      (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[0].value")
   - #@ toRepoNamePatch  (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value")
   - #@ fromRepoNamePatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[2].value")
@@ -199,4 +213,4 @@ spec:
     kind: XImageCopy
   resources:
     - #@ copyScript()
-    - #@ copyJob(repoName="cluster-essentials")
+    - #@ copyJob()
