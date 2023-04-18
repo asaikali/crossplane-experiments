@@ -313,7 +313,7 @@ base:
       region: ""
     writeConnectionSecretToRef:
       name: cluster-conn
-      namespace: green-tap
+      namespace: crossplane-system
     providerConfigRef:
       name: aws-upjet-provider
 patches:
@@ -323,7 +323,7 @@ patches:
   - #@ clusterNamePatch(toFieldPath="spec.forProvider.clusterName")
   - #@ clusterNamePatch(toFieldPath="spec.writeConnectionSecretToRef.name")
   - #@ regionPatch(toFieldPath="spec.forProvider.region")
-  - #@ codeNamePatch(toFieldPath="spec.writeConnectionSecretToRef.namespace")
+  #! - #@ codeNamePatch(toFieldPath="spec.writeConnectionSecretToRef.namespace")
 #@ end
 
 #@ def providerConfig():
@@ -338,13 +338,13 @@ base:
       secretRef:
         key: "kubeconfig"
         name: ""
-        namespace: ""
+        namespace: "crossplane-system"
       source: Secret
 patches:
   - #@ labelObject()
   - #@ clusterNamePatch(toFieldPath="metadata.name")
   - #@ clusterNamePatch(toFieldPath="spec.credentials.secretRef.name")
-  - #@ codeNamePatch(toFieldPath="spec.credentials.secretRef.namespace")
+  #! - #@ codeNamePatch(toFieldPath="spec.credentials.secretRef.namespace")
 #@ end
 
 #@ def testObject():
