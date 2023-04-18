@@ -63,6 +63,7 @@ base:
               ${FROM_REPO} \
               --to-repo ${TO_REPO} \
               --concurrency 1 \
+              --include-non-distributable-layers \
               --tty
            
             echo ""

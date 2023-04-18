@@ -10,4 +10,15 @@ spec:
   jobNamespace: crossplane-system
   tanzuNetSecret: tanzunet
 
-  
+---
+apiVersion: aws.tap.example.com/v1alpha1
+kind: XImageCopy
+metadata: 
+  name: green-tap-packages
+spec: 
+  codeName: green-tap
+  region: us-east-2
+  toRepoName: tap-packages
+  fromRepoUrl: "registry.tanzu.vmware.com/tanzu-application-platform/tap-packages:1.5.0"
+  jobNamespace: crossplane-system
+  tanzuNetSecret: tanzunet
