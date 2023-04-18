@@ -51,22 +51,54 @@ base:
             echo "--- pulling cluster essentials bundle"
             INSTALL_BUNDLE=${IMGPKG_REGISTRY_HOSTNAME_0}/${CULSTER_ESSENTIALS_IMAGE}
             echo "bundle repo: ${INSTALL_BUNDLE}"
-            sleep 1 
-
-            set -x
+            sleep 1  # to make output print in order 
             mkdir -p /tmp/bundle
             /usr/local/bin/imgpkg pull -b ${INSTALL_BUNDLE} -o /tmp/bundle/
             ls -lha /tmp/bundle
           
-           
+            echo ""
+            echo "--- testing connectivity to traget cluster"
+            export KUBECONFIG=/clusterAuth/kubeconfig
+            kubectl cluster-info
+            kubectl get nodes
 
-            # /usr/local/bin/imgpkg copy -b \
-            #   ${FROM_REPO} \
-            #   --to-repo ${TO_REPO} \
-            #   --concurrency 1 \
-            #   --include-non-distributable-layers \
-            #   --tty
-           
+            sleep 1
+
+            ns_name=tanzu-cluster-essentials
+            echo ""
+            echo "--- Creating ${ns_name} namespace"
+            cat <<EOF | kubectl apply -f -
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: ${ns_name}
+            EOF
+
+            export YTT_registry__server=$IMGPKG_REGISTRY_HOSTNAME_0
+            export YTT_registry__username=$IMGPKG_REGISTRY_USERNAME_0
+            export YTT_registry__password=$IMGPKG_REGISTRY_PASSWORD_0
+
+            echo "--- Deploying kapp-controller"
+            /usr/local/bin/kapp deploy --yes -a kapp-controller \
+               -n ${ns_name} \
+               -f <(/usr/local/bin/ytt \
+                     -f /tmp/bundle/kapp-controller/config/ \
+                     -f /tmp/bundle/registry-creds/ \
+                     --data-values-env \
+                     YTT --data-value-yaml \
+                     kappController.deployment.concurrency=10 \
+                     | /usr/local/bin/kbld -f- -f /tmp/bundle/.imgpkg/images.yml) 
+
+            echo ""
+            echo "--- Deploying secretgen-controller"
+            /usr/local/bin/kapp deploy --yes -a secretgen-controller \
+              -n ${ns_name} \
+              -f <(/usr/local/bin/ytt \
+                 -f /tmp/bundle/secretgen-controller/config/ \
+                 -f /tmp/bundle/registry-creds/ \
+                 --data-values-env YTT \
+                 | /usr/local/bin/kbld -f- -f /tmp/bundle/.imgpkg/images.yml) 
+
             echo ""
             echo "----------------------FINISH--------------------------------"
     providerConfigRef:
@@ -79,6 +111,12 @@ patches:
 type: FromCompositeFieldPath
 toFieldPath: #@ toFieldPath
 fromFieldPath: spec.region
+#@ end
+
+#@ def kubeConfigSecretPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.clusterName
 #@ end
 
 #@ def clusterEssentialsImagePatch(toFieldPath):
@@ -138,6 +176,9 @@ base:
                 - name: aws-access-key
                   secret:
                     secretName: aws-upjet-provider-creds
+                - name: kubeconfig
+                  secret:
+                    secretName: ""
               containers:
               - name: install-cluster-essentials
                 image: ghcr.io/asaikali/tap-shell:main
@@ -155,6 +196,8 @@ base:
                   mountPath: /scripts
                 - name: aws-access-key
                   mountPath: /aws/credentials
+                - name: kubeconfig
+                  mountPath: /clusterAuth
                 env:
                 - name: REGION
                   value: ""
@@ -171,7 +214,7 @@ patches:
   - #@ jobNamePatch(toFieldPath="spec.forProvider.manifest.metadata.name")
   - #@ regionPatch      (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[0].value")
   - #@ clusterEssentialsImagePatch  (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value")
- 
+  - #@ kubeConfigSecretPatch (toFieldPath="spec.forProvider.manifest.spec.template.spec.volumes[2].secret.secretName")
 #@ end
 
 apiVersion: apiextensions.crossplane.io/v1
