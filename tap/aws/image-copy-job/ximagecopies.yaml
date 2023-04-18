@@ -9,6 +9,3 @@ spec:
   fromRepoUrl: "registry.tanzu.vmware.com/tanzu-cluster-essentials/cluster-essentials-bundle@sha256:79abddbc3b49b44fc368fede0dab93c266ff7c1fe305e2d555ed52d00361b446"
   jobNamespace: crossplane-system
   tanzuNetSecret: tanzunet
-  version:
-    tap: "1.5.0"
-    cluster-essentials: "79abddbc3b49b44fc368fede0dab93c266ff7c1fe305e2d555ed52d00361b446"

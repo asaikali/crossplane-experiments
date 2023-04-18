@@ -43,19 +43,6 @@ spec:
                   type: string
                   description: |
                     the name of tanzunet secret 
-              version: 
-                type: object
-                description: the versions of TAP components to install 
-                properties: 
-                  tap:
-                    type: string
-                    description: the version of TAP to install
-                  cluster-essentials: 
-                    type: string
-                    description: the version of cluster essentials to install
-                required: 
-                - tap
-                - cluster-essentials
             required:
             - codeName
             - toRepoName
@@ -63,6 +50,5 @@ spec:
             - region 
             - jobNamespace
             - tanzuNetSecret
-            - version
       
             
