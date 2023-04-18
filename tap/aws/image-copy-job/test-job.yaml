@@ -11,6 +11,7 @@ data:
     aws configure
     aws ecr describe-repositories --region ${REGION}
     ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+    echo "ACCOUNT_ID=${ACCOUNT_ID}"
     export IMGPKG_REGISTRY_HOSTNAME_1=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
     export IMGPKG_REGISTRY_USERNAME_1=AWS
     export IMGPKG_REGISTRY_PASSWORD_1=$(aws ecr get-login-password --region ${REGION})

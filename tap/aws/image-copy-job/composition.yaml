@@ -1,0 +1,202 @@
+
+#!
+#! define jobs to copy images
+#!
+
+#@ def patchJobNamespace():
+type: FromCompositeFieldPath
+toFieldPath: spec.forProvider.manifest.metadata.namespace
+fromFieldPath: spec.jobNamespace
+#@ end
+
+#@ def copyScript():
+name: copy-script
+base:
+  apiVersion: kubernetes.crossplane.io/v1alpha1
+  kind: Object
+  metadata:
+    name: copy-image-script
+  spec:
+    forProvider:
+      manifest:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: copy-image-script
+          namespace: ""
+        data:
+          imgpkg-copy.sh: |
+            echo "----------------------START--------------------------------"
+
+            echo "--- Copying image inputs"
+            echo "AWS_SHARED_CREDENTIALS_FILE=${AWS_SHARED_CREDENTIALS_FILE}"
+            echo "REGION=${REGION}"
+            echo "REPO_NAME=${REPO_NAME}"
+            echo "FROM_REPO=${FROM_REPO}"
+            echo "IMGPKG_REGISTRY_HOSTNAME_0=${IMGPKG_REGISTRY_HOSTNAME_0}"
+            echo "IMGPKG_REGISTRY_USERNAME_0=${IMGPKG_REGISTRY_USERNAME_0}"
+
+            echo ""
+            echo "--- Checking aws creds file"
+            ls -lah /aws/credentials
+
+            echo ""
+            echo "--- configure aws cli"
+            aws configure
+
+            echo ""
+            echo "--- determie account id"
+            ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+            echo "ACCOUNT_ID=${ACCOUNT_ID}"
+
+            export IMGPKG_REGISTRY_HOSTNAME_1=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+            export IMGPKG_REGISTRY_USERNAME_1=AWS
+            export IMGPKG_REGISTRY_PASSWORD_1=$(aws ecr get-login-password --region ${REGION})
+ 
+            echo ""
+            echo "--- destination repo"
+            TO_REPO=${IMGPKG_REGISTRY_HOSTNAME_1}/${REPO_NAME}
+            echo "TO_REPO=${TO_REPO}"
+
+            echo ""
+            set -x
+            /usr/local/bin/imgpkg copy -b \
+              ${FROM_REPO} \
+              --to-repo ${TO_REPO} \
+              --concurrency 1 \
+              --tty
+            set +x
+
+            echo ""
+            echo "----------------------FINISH--------------------------------"
+    providerConfigRef:
+      name:  local-kubernetes-provider
+patches:
+  - #@ patchJobNamespace()
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def toRepoNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.toRepoName
+  strategy: string
+  string:
+    fmt: "%s-%s"
+#@ end
+
+#@ def fromRepoNamePatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.fromRepoUrl
+#@ end
+
+#@ def tanzuNetSecretPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.tanzuNetSecret
+#@ end
+
+#@ def copyJob(repoName):
+name: #@ "copy-" + repoName
+base:
+  apiVersion: kubernetes.crossplane.io/v1alpha1
+  kind: Object
+  metadata:
+    #! nameGenerator: #@ "copy-" + repoName + "-"
+    name: #@ "copy-" + repoName
+  spec:
+    forProvider:
+      manifest:
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          generateName: #@ "copy-images-to-" + repoName + "-"
+          namespace: ""
+        spec:
+          backoffLimit: 0
+          activeDeadlineSeconds: 3600
+          ttlSecondsAfterFinished: 3600
+          template:
+            spec:
+              restartPolicy: Never
+              volumes:
+                - name: scripts-volume
+                  configMap:
+                    name: copy-image-script
+                - name: aws-access-key
+                  secret:
+                    secretName: aws-upjet-provider-creds
+              containers:
+              - name: relocate-images
+                image: ghcr.io/asaikali/tap-shell:main
+                command: ["/bin/bash"]
+                args:
+                - /scripts/imgpkg-copy.sh
+                securityContext:
+                  runAsUser: 1000
+                resources:
+                  requests:
+                    cpu: "1000m"
+                    memory: "512Mi"
+                volumeMounts:
+                - name: scripts-volume
+                  mountPath: /scripts
+                - name: aws-access-key
+                  mountPath: /aws/credentials
+                env:
+                - name: REGION
+                  value: ""
+                - name: REPO_NAME
+                  value: ""
+                - name: FROM_REPO
+                  value: ""
+                - name: IMGPKG_REGISTRY_HOSTNAME_0
+                  value: registry.tanzu.vmware.com
+                - name: IMGPKG_REGISTRY_USERNAME_0
+                  valueFrom:
+                    secretKeyRef:
+                      name: ""
+                      key: username
+                      optional: false
+                - name: IMGPKG_REGISTRY_PASSWORD_0
+                  valueFrom:
+                    secretKeyRef:
+                      name: ""
+                      key: password
+                      optional: false
+                - name: AWS_SHARED_CREDENTIALS_FILE
+                  value: /aws/credentials/creds
+
+    providerConfigRef:
+      name: local-kubernetes-provider
+patches:
+  - #@ patchJobNamespace()
+  - #@ regionPatch      (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[0].value")
+  - #@ toRepoNamePatch  (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value")
+  - #@ fromRepoNamePatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[2].value")
+  - #@ tanzuNetSecretPatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[4].valueFrom.secretKeyRef.name")
+  - #@ tanzuNetSecretPatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[5].valueFrom.secretKeyRef.name")
+#@ end
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-aws-image-copy
+  labels:
+    crossplane.io/xrd: ximagecopies.aws.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XImageCopy
+  resources:
+    - #@ copyScript()
+    - #@ copyJob(repoName="cluster-essentials")
