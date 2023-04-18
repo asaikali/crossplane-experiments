@@ -30,25 +30,20 @@ spec:
               region: 
                 type: string
                 description: The region to create ECR tap repos in
-              toRepoName:
+              repoName:
                 type: string
-              fromRepoUrl:
+              version:
                 type: string 
               jobNamespace: 
                 type: string
                 description: |
                   the name of the namespace where the job will be created
                   the namespace must have a secert to access tanzuNet 
-              tanzuNetSecret: 
-                  type: string
-                  description: |
-                    the name of tanzunet secret 
             required:
             - codeName
-            - toRepoName
-            - fromRepoUrl
+            - repoName
             - region 
             - jobNamespace
-            - tanzuNetSecret
+            - version
       
             

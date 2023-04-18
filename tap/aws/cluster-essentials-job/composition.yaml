@@ -9,32 +9,28 @@ toFieldPath: spec.forProvider.manifest.metadata.namespace
 fromFieldPath: spec.jobNamespace
 #@ end
 
-#@ def copyScript():
-name: copy-script
+#@ def installScript():
+name: install-script
 base:
   apiVersion: kubernetes.crossplane.io/v1alpha1
   kind: Object
   metadata:
-    name: copy-image-script
+    name: install-cluster-essentials-script
   spec:
     forProvider:
       manifest:
         apiVersion: v1
         kind: ConfigMap
         metadata:
-          name: copy-image-script
+          name: install-cluster-essentials-script
           namespace: ""
         data:
-          imgpkg-copy.sh: |
+          install.sh: |
             echo "----------------------START--------------------------------"
             echo ""
             echo "--- Environment variables"
             echo "AWS_SHARED_CREDENTIALS_FILE=${AWS_SHARED_CREDENTIALS_FILE}"
             echo "REGION=${REGION}"
-            echo "REPO_NAME=${REPO_NAME}"
-            echo "FROM_REPO=${FROM_REPO}"
-            echo "IMGPKG_REGISTRY_HOSTNAME_0=${IMGPKG_REGISTRY_HOSTNAME_0}"
-            echo "IMGPKG_REGISTRY_USERNAME_0=${IMGPKG_REGISTRY_USERNAME_0}"
 
             echo ""
             echo "--- Checking aws creds file"
@@ -46,25 +42,25 @@ base:
             ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
             echo "ACCOUNT_ID=${ACCOUNT_ID}"
 
-            export IMGPKG_REGISTRY_HOSTNAME_1=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
-            export IMGPKG_REGISTRY_USERNAME_1=AWS
-            export IMGPKG_REGISTRY_PASSWORD_1=$(aws ecr get-login-password --region ${REGION})
+            export IMGPKG_REGISTRY_HOSTNAME_0=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+            export IMGPKG_REGISTRY_USERNAME_0=AWS
+            export IMGPKG_REGISTRY_PASSWORD_0=$(aws ecr get-login-password --region ${REGION})
  
             echo ""
-            echo "--- copy from / to"
-            TO_REPO=${IMGPKG_REGISTRY_HOSTNAME_1}/${REPO_NAME}
-            echo "from: ${FROM_REPO}"
-            echo "to  : ${TO_REPO}"
+            echo "--- pulling cluster essentials bundle"
+            INSTALL_BUDNLE=${IMGPKG_REGISTRY_HOSTNAME_0}/${REPO_NAME}
+            echo "bundle repo: ${INSTALL_BUDNLE}"
+            imgpkg pull -b $INSTALL_BUNDLE -o /tmp/bundle/
+            ls -lha /tmp/bundle
+          
+           
 
-            echo ""
-            echo "--- run imgpkg"
-
-            /usr/local/bin/imgpkg copy -b \
-              ${FROM_REPO} \
-              --to-repo ${TO_REPO} \
-              --concurrency 1 \
-              --include-non-distributable-layers \
-              --tty
+            # /usr/local/bin/imgpkg copy -b \
+            #   ${FROM_REPO} \
+            #   --to-repo ${TO_REPO} \
+            #   --concurrency 1 \
+            #   --include-non-distributable-layers \
+            #   --tty
            
             echo ""
             echo "----------------------FINISH--------------------------------"
@@ -213,3 +209,4 @@ spec:
     apiVersion: aws.tap.example.com/v1alpha1
     kind: XClusterEssentialsJob
   resources:
+  - #@ installScript()
