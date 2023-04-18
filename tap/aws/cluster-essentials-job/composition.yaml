@@ -31,6 +31,7 @@ base:
             echo "--- Environment variables"
             echo "AWS_SHARED_CREDENTIALS_FILE=${AWS_SHARED_CREDENTIALS_FILE}"
             echo "REGION=${REGION}"
+            echo "CULSTER_ESSENTIALS_IMAGE=${CULSTER_ESSENTIALS_IMAGE}"
 
             echo ""
             echo "--- Checking aws creds file"
@@ -48,9 +49,13 @@ base:
  
             echo ""
             echo "--- pulling cluster essentials bundle"
-            INSTALL_BUDNLE=${IMGPKG_REGISTRY_HOSTNAME_0}/${REPO_NAME}
-            echo "bundle repo: ${INSTALL_BUDNLE}"
-            imgpkg pull -b $INSTALL_BUNDLE -o /tmp/bundle/
+            INSTALL_BUNDLE=${IMGPKG_REGISTRY_HOSTNAME_0}/${CULSTER_ESSENTIALS_IMAGE}
+            echo "bundle repo: ${INSTALL_BUNDLE}"
+            sleep 1 
+
+            set -x
+            mkdir -p /tmp/bundle
+            /usr/local/bin/imgpkg pull -b ${INSTALL_BUNDLE} -o /tmp/bundle/
             ls -lha /tmp/bundle
           
            
@@ -76,30 +81,20 @@ toFieldPath: #@ toFieldPath
 fromFieldPath: spec.region
 #@ end
 
-#@ def toRepoNamePatch(toFieldPath):
+#@ def clusterEssentialsImagePatch(toFieldPath):
 type: CombineFromComposite
 toFieldPath: #@ toFieldPath
 combine:
   variables:
     - fromFieldPath: spec.codeName
-    - fromFieldPath: spec.toRepoName
+    - fromFieldPath: spec.repoName
+    - fromFieldPath: spec.version
   strategy: string
   string:
-    fmt: "%s-%s"
+    fmt: "%s-%s@sha256:%s"
 #@ end
 
 
-#@ def fromRepoNamePatch(toFieldPath):
-type: FromCompositeFieldPath
-toFieldPath: #@ toFieldPath
-fromFieldPath: spec.fromRepoUrl
-#@ end
-
-#@ def tanzuNetSecretPatch(toFieldPath):
-type: FromCompositeFieldPath
-toFieldPath: #@ toFieldPath
-fromFieldPath: spec.tanzuNetSecret
-#@ end
 
 #@ def jobNamePatch(toFieldPath):
 type: CombineFromComposite
@@ -107,20 +102,19 @@ toFieldPath: #@ toFieldPath
 combine:
   variables:
     - fromFieldPath: spec.codeName
-    - fromFieldPath: spec.toRepoName
+    - fromFieldPath: spec.clusterName
   strategy: string
   string:
-    fmt: "%s-copy-images-to-%s"
+    fmt: "%s-install-cluster-essentials-to-%s"
 #@ end
 
 
-#@ def copyJob():
-name: imgpkg-copy
+#@ def installClusterEssentials():
+name: install-cluster-essentials-job
 base:
   apiVersion: kubernetes.crossplane.io/v1alpha1
   kind: Object
   metadata:
-    #! nameGenerator: #@ "copy-" + repoName + "-"
     name: ""
   spec:
     forProvider:
@@ -140,16 +134,16 @@ base:
               volumes:
                 - name: scripts-volume
                   configMap:
-                    name: copy-image-script
+                    name: install-cluster-essentials-script
                 - name: aws-access-key
                   secret:
                     secretName: aws-upjet-provider-creds
               containers:
-              - name: relocate-images
+              - name: install-cluster-essentials
                 image: ghcr.io/asaikali/tap-shell:main
                 command: ["/bin/bash"]
                 args:
-                - /scripts/imgpkg-copy.sh
+                - /scripts/install.sh
                 securityContext:
                   runAsUser: 1000
                 resources:
@@ -164,24 +158,8 @@ base:
                 env:
                 - name: REGION
                   value: ""
-                - name: REPO_NAME
+                - name: CULSTER_ESSENTIALS_IMAGE
                   value: ""
-                - name: FROM_REPO
-                  value: ""
-                - name: IMGPKG_REGISTRY_HOSTNAME_0
-                  value: registry.tanzu.vmware.com
-                - name: IMGPKG_REGISTRY_USERNAME_0
-                  valueFrom:
-                    secretKeyRef:
-                      name: ""
-                      key: username
-                      optional: false
-                - name: IMGPKG_REGISTRY_PASSWORD_0
-                  valueFrom:
-                    secretKeyRef:
-                      name: ""
-                      key: password
-                      optional: false
                 - name: AWS_SHARED_CREDENTIALS_FILE
                   value: /aws/credentials/creds
 
@@ -192,10 +170,8 @@ patches:
   - #@ jobNamePatch(toFieldPath="metadata.name")
   - #@ jobNamePatch(toFieldPath="spec.forProvider.manifest.metadata.name")
   - #@ regionPatch      (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[0].value")
-  - #@ toRepoNamePatch  (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value")
-  - #@ fromRepoNamePatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[2].value")
-  - #@ tanzuNetSecretPatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[4].valueFrom.secretKeyRef.name")
-  - #@ tanzuNetSecretPatch(toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[5].valueFrom.secretKeyRef.name")
+  - #@ clusterEssentialsImagePatch  (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value")
+ 
 #@ end
 
 apiVersion: apiextensions.crossplane.io/v1
@@ -210,3 +186,4 @@ spec:
     kind: XClusterEssentialsJob
   resources:
   - #@ installScript()
+  - #@ installClusterEssentials()

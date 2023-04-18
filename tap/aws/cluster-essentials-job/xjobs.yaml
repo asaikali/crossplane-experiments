@@ -8,3 +8,4 @@ spec:
   repoName: cluster-essentials
   version: "79abddbc3b49b44fc368fede0dab93c266ff7c1fe305e2d555ed52d00361b446"
   jobNamespace: crossplane-system
+  clusterName: green-tap-view-1

@@ -32,6 +32,8 @@ spec:
                 description: The region to create ECR tap repos in
               repoName:
                 type: string
+              clusterName: 
+                type: string 
               version:
                 type: string 
               jobNamespace: 
@@ -45,5 +47,6 @@ spec:
             - region 
             - jobNamespace
             - version
+            - clusterName
       
             
