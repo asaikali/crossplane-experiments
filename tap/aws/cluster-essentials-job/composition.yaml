@@ -84,9 +84,8 @@ base:
                -f <(/usr/local/bin/ytt \
                      -f /tmp/bundle/kapp-controller/config/ \
                      -f /tmp/bundle/registry-creds/ \
-                     --data-values-env \
-                     YTT --data-value-yaml \
-                     kappController.deployment.concurrency=10 \
+                     --data-values-env YTT \
+                     --data-value-yaml kappController.deployment.concurrency=10 \
                      | /usr/local/bin/kbld -f- -f /tmp/bundle/.imgpkg/images.yml) 
 
             echo ""
