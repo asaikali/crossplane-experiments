@@ -1,0 +1,1 @@
+kubectl get Jobs,configmaps,xclusteressentialsjobs -n crossplane-system

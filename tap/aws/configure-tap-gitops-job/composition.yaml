@@ -1,0 +1,319 @@
+
+#!
+#! define jobs to copy images
+#!
+
+#@ def patchJobNamespace():
+type: FromCompositeFieldPath
+toFieldPath: spec.forProvider.manifest.metadata.namespace
+fromFieldPath: spec.jobNamespace
+#@ end
+
+#@ def installScript():
+name: install-script
+base:
+  apiVersion: kubernetes.crossplane.io/v1alpha1
+  kind: Object
+  metadata:
+    name: install-cluster-essentials-script
+  spec:
+    forProvider:
+      manifest:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: install-cluster-essentials-script
+          namespace: ""
+        data:
+          install.sh: |
+            echo "----------------------START--------------------------------"
+            echo ""
+            echo "--- Environment variables"
+            echo "AWS_SHARED_CREDENTIALS_FILE=${AWS_SHARED_CREDENTIALS_FILE}"
+            echo "REGION=${REGION}"
+            echo "CULSTER_ESSENTIALS_IMAGE=${CULSTER_ESSENTIALS_IMAGE}"
+
+            echo ""
+            echo "--- Checking aws creds file"
+            ls -lah /aws/credentials
+
+            echo ""
+            echo "--- configure aws cli"
+            aws configure
+            ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+            echo "ACCOUNT_ID=${ACCOUNT_ID}"
+
+            export IMGPKG_REGISTRY_HOSTNAME_0=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+            export IMGPKG_REGISTRY_USERNAME_0=AWS
+            export IMGPKG_REGISTRY_PASSWORD_0=$(aws ecr get-login-password --region ${REGION})
+ 
+            echo ""
+            echo "--- pulling cluster essentials bundle"
+            INSTALL_BUNDLE=${IMGPKG_REGISTRY_HOSTNAME_0}/${CULSTER_ESSENTIALS_IMAGE}
+            echo "bundle repo: ${INSTALL_BUNDLE}"
+            sleep 1  # to make output print in order 
+            mkdir -p /tmp/bundle
+            /usr/local/bin/imgpkg pull -b ${INSTALL_BUNDLE} -o /tmp/bundle/
+            ls -lha /tmp/bundle
+          
+            echo ""
+            echo "--- testing connectivity to traget cluster"
+            export KUBECONFIG=/clusterAuth/kubeconfig
+            kubectl cluster-info
+            kubectl get nodes
+
+            sleep 1
+
+            ns_name=tanzu-cluster-essentials
+            echo ""
+            echo "--- Creating ${ns_name} namespace"
+            cat <<EOF | kubectl apply -f -
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: ${ns_name}
+            EOF
+
+            export YTT_registry__server=$IMGPKG_REGISTRY_HOSTNAME_0
+            export YTT_registry__username=$IMGPKG_REGISTRY_USERNAME_0
+            export YTT_registry__password=$IMGPKG_REGISTRY_PASSWORD_0
+
+            echo "--- Deploying kapp-controller"
+            /usr/local/bin/kapp deploy --yes -a kapp-controller \
+               -n ${ns_name} \
+               -f <(/usr/local/bin/ytt \
+                     -f /tmp/bundle/kapp-controller/config/ \
+                     -f /tmp/bundle/registry-creds/ \
+                     --data-values-env \
+                     YTT --data-value-yaml \
+                     kappController.deployment.concurrency=10 \
+                     | /usr/local/bin/kbld -f- -f /tmp/bundle/.imgpkg/images.yml) 
+
+            echo ""
+            echo "--- Deploying secretgen-controller"
+            /usr/local/bin/kapp deploy --yes -a secretgen-controller \
+              -n ${ns_name} \
+              -f <(/usr/local/bin/ytt \
+                 -f /tmp/bundle/secretgen-controller/config/ \
+                 -f /tmp/bundle/registry-creds/ \
+                 --data-values-env YTT \
+                 | /usr/local/bin/kbld -f- -f /tmp/bundle/.imgpkg/images.yml) 
+
+
+            echo ""
+            echo "--- Create GitOps Namespace "
+            cat <<EOF | kubectl apply -f -
+
+            ---
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: tap-install
+
+            ---
+            apiVersion: v1
+            kind: ServiceAccount
+            metadata:
+              name: tap-installer-sa
+              namespace: tap-install
+
+            ---
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRole
+            metadata:
+              name: tap-install-cluster-admin
+              namespace: tap-install
+            rules:
+              - apiGroups:
+                  - '*'
+                resources:
+                  - '*'
+                verbs:
+                  - '*'
+
+            ---
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRoleBinding
+            metadata:
+              name: tap-install-cluster-admin
+              namespace: tap-install
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: ClusterRole
+              name: tap-install-cluster-admin
+            subjects:
+              - kind: ServiceAccount
+                name: tap-installer-sa
+                namespace: tap-install
+            EOF
+
+            echo ""
+            echo "--- Create GitOps Secret "
+            kubectl create secret generic tap-gitops  \
+              -n tap-install \
+              --from-file=username=/tap-gitops/username \
+              --from-file=password=/tap-gitops/password \
+              --dry-run=client \
+              -o yaml \
+              | kubectl apply -f - 
+
+            echo ""
+            echo "--- Create kapp-controller App "
+            cat <<EOF | kubectl apply -f -
+            apiVersion: kappctrl.k14s.io/v1alpha1
+            kind: App
+            metadata:
+              name: tap
+              namespace: tap-install
+            spec:
+              serviceAccountName: tap-installer-sa
+              fetch:
+              - git:
+                  url: https://github.com/asaikali/tap-deployment.git
+                  ref: main
+                  subPath: clusters/view
+                  secretRef:
+                    name: tap-gitops
+                    
+              template:
+              - ytt: {}
+
+              deploy:
+              - kapp: {}
+            EOF
+  
+            echo ""
+            echo "----------------------FINISH--------------------------------"
+    providerConfigRef:
+      name:  local-kubernetes-provider
+patches:
+  - #@ patchJobNamespace()
+#@ end
+
+#@ def regionPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.region
+#@ end
+
+#@ def kubeConfigSecretPatch(toFieldPath):
+type: FromCompositeFieldPath
+toFieldPath: #@ toFieldPath
+fromFieldPath: spec.clusterName
+#@ end
+
+#@ def clusterEssentialsImagePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.repoName
+    - fromFieldPath: spec.version
+  strategy: string
+  string:
+    fmt: "%s-%s@sha256:%s"
+#@ end
+
+
+
+#@ def jobNamePatch(toFieldPath):
+type: CombineFromComposite
+toFieldPath: #@ toFieldPath
+combine:
+  variables:
+    - fromFieldPath: spec.codeName
+    - fromFieldPath: spec.clusterName
+  strategy: string
+  string:
+    fmt: "%s-install-cluster-essentials-to-%s"
+#@ end
+
+
+#@ def installClusterEssentials():
+name: install-cluster-essentials-job
+base:
+  apiVersion: kubernetes.crossplane.io/v1alpha1
+  kind: Object
+  metadata:
+    name: ""
+  spec:
+    forProvider:
+      manifest:
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: ""
+          namespace: ""
+        spec:
+          backoffLimit: 0
+          activeDeadlineSeconds: 3600
+          ttlSecondsAfterFinished: 3600
+          template:
+            spec:
+              restartPolicy: Never
+              volumes:
+                - name: scripts-volume
+                  configMap:
+                    name: install-cluster-essentials-script
+                - name: aws-access-key
+                  secret:
+                    secretName: aws-upjet-provider-creds
+                - name: kubeconfig
+                  secret:
+                    secretName: ""
+                - name: tap-gitops
+                  secret:
+                    secretName: tap-gitops
+              containers:
+              - name: install-cluster-essentials
+                image: ghcr.io/asaikali/tap-shell:main
+                command: ["/bin/bash"]
+                args:
+                - /scripts/install.sh
+                securityContext:
+                  runAsUser: 1000
+                resources:
+                  requests:
+                    cpu: "1000m"
+                    memory: "512Mi"
+                volumeMounts:
+                - name: scripts-volume
+                  mountPath: /scripts
+                - name: aws-access-key
+                  mountPath: /aws/credentials
+                - name: kubeconfig
+                  mountPath: /clusterAuth
+                - name: tap-gitops
+                  mountPath: /tap-gitops
+                env:
+                - name: REGION
+                  value: ""
+                - name: CULSTER_ESSENTIALS_IMAGE
+                  value: ""
+                - name: AWS_SHARED_CREDENTIALS_FILE
+                  value: /aws/credentials/creds
+    providerConfigRef:
+      name: local-kubernetes-provider
+patches:
+  - #@ patchJobNamespace()
+  - #@ jobNamePatch(toFieldPath="metadata.name")
+  - #@ jobNamePatch(toFieldPath="spec.forProvider.manifest.metadata.name")
+  - #@ regionPatch      (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[0].value")
+  - #@ clusterEssentialsImagePatch  (toFieldPath="spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value")
+  - #@ kubeConfigSecretPatch (toFieldPath="spec.forProvider.manifest.spec.template.spec.volumes[2].secret.secretName")
+#@ end
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: tap-install-cluster-essentials
+  labels:
+    crossplane.io/xrd: xclusteressentialsjobs.aws.tap.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: aws.tap.example.com/v1alpha1
+    kind: XClusterEssentialsJob
+  resources:
+  - #@ installScript()
+  - #@ installClusterEssentials()

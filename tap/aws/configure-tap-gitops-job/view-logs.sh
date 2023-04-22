@@ -1,0 +1,1 @@
+kubectl logs job.batch/green-tap-install-cluster-essentials-to-green-tap-view-1  -n crossplane-system 
