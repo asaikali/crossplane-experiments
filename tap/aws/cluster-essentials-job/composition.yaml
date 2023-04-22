@@ -99,6 +99,89 @@ base:
                  --data-values-env YTT \
                  | /usr/local/bin/kbld -f- -f /tmp/bundle/.imgpkg/images.yml) 
 
+
+            echo ""
+            echo "--- Create GitOps Namespace "
+            cat <<EOF | kubectl apply -f -
+
+            ---
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: tap-install
+
+            ---
+            apiVersion: v1
+            kind: ServiceAccount
+            metadata:
+              name: tap-installer-sa
+              namespace: tap-install
+
+            ---
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRole
+            metadata:
+              name: tap-install-cluster-admin
+              namespace: tap-install
+            rules:
+              - apiGroups:
+                  - '*'
+                resources:
+                  - '*'
+                verbs:
+                  - '*'
+
+            ---
+            apiVersion: rbac.authorization.k8s.io/v1
+            kind: ClusterRoleBinding
+            metadata:
+              name: tap-install-cluster-admin
+              namespace: tap-install
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: ClusterRole
+              name: tap-install-cluster-admin
+            subjects:
+              - kind: ServiceAccount
+                name: tap-installer-sa
+                namespace: tap-install
+            EOF
+
+            echo ""
+            echo "--- Create GitOps Secret "
+            kubectl create secret generic tap-gitops  \
+              -n tap-install \
+              --from-file=username=/tap-gitops/username \
+              --from-file=password=/tap-gitops/password \
+              --dry-run=client \
+              -o yaml \
+              | kubectl apply -f - 
+
+            echo ""
+            echo "--- Create kapp-controller App "
+            cat <<EOF | kubectl apply -f -
+            apiVersion: kappctrl.k14s.io/v1alpha1
+            kind: App
+            metadata:
+              name: tap
+              namespace: tap-install
+            spec:
+              serviceAccountName: tap-installer-sa
+              fetch:
+              - git:
+                  url: https://github.com/asaikali/tap-deployment.git
+                  ref: main
+                  subPath: clusters/view
+                  secretRef:
+                    name: tap-gitops
+                    
+              template:
+              - ytt: {}
+
+              deploy:
+              - kapp: {}
+            EOF
+  
             echo ""
             echo "----------------------FINISH--------------------------------"
     providerConfigRef:
@@ -179,6 +262,9 @@ base:
                 - name: kubeconfig
                   secret:
                     secretName: ""
+                - name: tap-gitops
+                  secret:
+                    secretName: tap-gitops
               containers:
               - name: install-cluster-essentials
                 image: ghcr.io/asaikali/tap-shell:main
@@ -198,6 +284,8 @@ base:
                   mountPath: /aws/credentials
                 - name: kubeconfig
                   mountPath: /clusterAuth
+                - name: tap-gitops
+                  mountPath: /tap-gitops
                 env:
                 - name: REGION
                   value: ""
@@ -205,7 +293,6 @@ base:
                   value: ""
                 - name: AWS_SHARED_CREDENTIALS_FILE
                   value: /aws/credentials/creds
-
     providerConfigRef:
       name: local-kubernetes-provider
 patches:
