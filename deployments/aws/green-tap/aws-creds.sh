@@ -5,7 +5,7 @@ REGION=${2}
 
 echo "getting cluster creds"
 set -x
-KUBECONFIG=${SCRIPT_DIR}/kubeconfigs/aws-${CLUSTER_NAME}.yaml
+KUBECONFIG=${SCRIPT_DIR}/state/kubeconfigs/aws-${CLUSTER_NAME}.yaml
 
 aws eks update-kubeconfig \
  --region ${REGION} \
